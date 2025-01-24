@@ -1,0 +1,495 @@
+time_single_pixel = 0.6961374282836914
+time for line = 14.588478326797485
+done moving!
+done moving!
+X_fast time passed= 0.03191423416137695
+t_get_data= 0.02992105484008789
+time_single_pixel = 0.1735363006591797
+done moving!
+X_fast time passed= 0.5784499645233154
+t_get_data= 0.028922557830810547
+time_single_pixel = 0.8128244876861572
+done moving!
+X_fast time passed= 0.5694758892059326
+t_get_data= 0.02991962432861328
+time_single_pixel = 0.7569749355316162
+done moving!
+X_fast time passed= 0.5505263805389404
+t_get_data= 0.028922319412231445
+time_single_pixel = 0.7350330352783203
+done moving!
+X_fast time passed= 0.5694761276245117
+t_get_data= 0.028922080993652344
+time_single_pixel = 0.7549798488616943
+done moving!
+X_fast time passed= 0.5654873847961426
+t_get_data= 0.028922319412231445
+time_single_pixel = 0.7479989528656006
+done moving!
+X_fast time passed= 0.5644903182983398
+t_get_data= 0.02792501449584961
+time_single_pixel = 0.7470016479492188
+done moving!
+X_fast time passed= 0.5724685192108154
+t_get_data= 0.039893388748168945
+time_single_pixel = 0.7210710048675537
+done moving!
+X_fast time passed= 0.5545153617858887
+t_get_data= 0.030915498733520508
+time_single_pixel = 0.8327722549438477
+done moving!
+X_fast time passed= 0.5624949932098389
+t_get_data= 0.028922557830810547
+time_single_pixel = 0.7001268863677979
+done moving!
+X_fast time passed= 0.5624959468841553
+t_get_data= 0.02991962432861328
+time_single_pixel = 0.7998595237731934
+done moving!
+X_fast time passed= 0.5624949932098389
+t_get_data= 0.026927709579467773
+time_single_pixel = 0.7011246681213379
+done moving!
+X_fast time passed= 0.5694751739501953
+t_get_data= 0.028923511505126953
+time_single_pixel = 0.8038492202758789
+done moving!
+X_fast time passed= 0.5575087070465088
+t_get_data= 0.02593064308166504
+time_single_pixel = 0.6921486854553223
+done moving!
+X_fast time passed= 0.5714709758758545
+t_get_data= 0.02493429183959961
+time_single_pixel = 0.7549805641174316
+done moving!
+X_fast time passed= 0.5764570236206055
+t_get_data= 0.028936147689819336
+time_single_pixel = 0.8088347911834717
+done moving!
+X_fast time passed= 0.55653977394104
+t_get_data= 0.027897357940673828
+time_single_pixel = 0.784900426864624
+done moving!
+X_fast time passed= 0.5764560699462891
+t_get_data= 0.028923988342285156
+time_single_pixel = 0.7150869369506836
+done moving!
+X_fast time passed= 0.5530281066894531
+t_get_data= 0.026927471160888672
+time_single_pixel = 0.7874011993408203
+done moving!
+X_fast time passed= 0.5644888877868652
+t_get_data= 0.027925491333007812
+time_single_pixel = 0.749993085861206
+time for line = 14.581496477127075
+done moving!
+done moving!
+X_fast time passed= 0.03191351890563965
+t_get_data= 0.027925491333007812
+time_single_pixel = 0.218414306640625
+done moving!
+X_fast time passed= 0.5844414234161377
+t_get_data= 0.02892327308654785
+time_single_pixel = 0.7709379196166992
+done moving!
+X_fast time passed= 0.5644903182983398
+t_get_data= 0.02892303466796875
+time_single_pixel = 0.7499933242797852
+done moving!
+X_fast time passed= 0.567481517791748
+t_get_data= 0.026915788650512695
+time_single_pixel = 0.7051141262054443
+done moving!
+X_fast time passed= 0.5555315017700195
+t_get_data= 0.026928186416625977
+time_single_pixel = 0.7370283603668213
+done moving!
+X_fast time passed= 0.5774550437927246
+t_get_data= 0.02892279624938965
+time_single_pixel = 0.8078374862670898
+done moving!
+X_fast time passed= 0.5555143356323242
+t_get_data= 0.027925968170166016
+time_single_pixel = 0.7430129051208496
+done moving!
+X_fast time passed= 0.5664839744567871
+t_get_data= 0.026929616928100586
+time_single_pixel = 0.7470016479492188
+done moving!
+X_fast time passed= 0.5744624137878418
+t_get_data= 0.027925491333007812
+time_single_pixel = 0.8108298778533936
+done moving!
+X_fast time passed= 0.5614974498748779
+t_get_data= 0.02692890167236328
+time_single_pixel = 0.6981320381164551
+done moving!
+X_fast time passed= 0.5694766044616699
+t_get_data= 0.02892303466796875
+time_single_pixel = 0.8008573055267334
+done moving!
+X_fast time passed= 0.5644898414611816
+t_get_data= 0.028923511505126953
+time_single_pixel = 0.7051138877868652
+done moving!
+X_fast time passed= 0.5595014095306396
+t_get_data= 0.027925968170166016
+time_single_pixel = 0.794872522354126
+done moving!
+X_fast time passed= 0.5635251998901367
+t_get_data= 0.026928424835205078
+time_single_pixel = 0.7460041046142578
+done moving!
+X_fast time passed= 0.5654871463775635
+t_get_data= 0.027925729751586914
+time_single_pixel = 0.7479989528656006
+done moving!
+X_fast time passed= 0.567481517791748
+t_get_data= 0.02792525291442871
+time_single_pixel = 0.7549800872802734
+done moving!
+X_fast time passed= 0.5614981651306152
+t_get_data= 0.027925729751586914
+time_single_pixel = 0.7460038661956787
+done moving!
+X_fast time passed= 0.5644903182983398
+t_get_data= 0.027926206588745117
+time_single_pixel = 0.7021224498748779
+done moving!
+X_fast time passed= 0.567481279373169
+t_get_data= 0.02792525291442871
+time_single_pixel = 0.7529850006103516
+done moving!
+X_fast time passed= 0.5555140972137451
+t_get_data= 0.028921842575073242
+time_single_pixel = 0.7839024066925049
+time for line = 14.525137901306152
+done moving!
+done moving!
+X_fast time passed= 0.03191375732421875
+t_get_data= 0.030916690826416016
+time_single_pixel = 0.1735363006591797
+done moving!
+X_fast time passed= 0.591416597366333
+t_get_data= 0.02892303466796875
+time_single_pixel = 0.8267867565155029
+done moving!
+X_fast time passed= 0.5614979267120361
+t_get_data= 0.02892279624938965
+time_single_pixel = 0.7470016479492188
+done moving!
+X_fast time passed= 0.5634920597076416
+t_get_data= 0.028922080993652344
+time_single_pixel = 0.7499947547912598
+done moving!
+X_fast time passed= 0.5684776306152344
+t_get_data= 0.030916690826416016
+time_single_pixel = 0.7559762001037598
+done moving!
+X_fast time passed= 0.554516077041626
+t_get_data= 0.029911518096923828
+time_single_pixel = 0.6961376667022705
+done moving!
+X_fast time passed= 0.5705037117004395
+t_get_data= 0.029886245727539062
+time_single_pixel = 0.8507356643676758
+done moving!
+X_fast time passed= 0.5564990043640137
+t_get_data= 0.02992081642150879
+time_single_pixel = 0.69911789894104
+done moving!
+X_fast time passed= 0.5617685317993164
+t_get_data= 0.029921293258666992
+time_single_pixel = 0.7921521663665771
+done moving!
+X_fast time passed= 0.5674824714660645
+t_get_data= 0.028914213180541992
+time_single_pixel = 0.7559781074523926
+done moving!
+X_fast time passed= 0.560499906539917
+t_get_data= 0.02992081642150879
+time_single_pixel = 0.7470030784606934
+done moving!
+X_fast time passed= 0.5634908676147461
+t_get_data= 0.026928186416625977
+time_single_pixel = 0.7011227607727051
+done moving!
+X_fast time passed= 0.5694758892059326
+t_get_data= 0.029920339584350586
+time_single_pixel = 0.8008568286895752
+done moving!
+X_fast time passed= 0.5635251998901367
+t_get_data= 0.029920101165771484
+time_single_pixel = 0.7031276226043701
+done moving!
+X_fast time passed= 0.5694780349731445
+t_get_data= 0.028941631317138672
+time_single_pixel = 0.8497402667999268
+done moving!
+X_fast time passed= 0.5545156002044678
+t_get_data= 0.02792501449584961
+time_single_pixel = 0.7419931888580322
+done moving!
+X_fast time passed= 0.565485954284668
+t_get_data= 0.024900197982788086
+time_single_pixel = 0.7479979991912842
+done moving!
+X_fast time passed= 0.57047438621521
+t_get_data= 0.023935556411743164
+time_single_pixel = 0.7051143646240234
+done moving!
+X_fast time passed= 0.566483736038208
+t_get_data= 0.02792501449584961
+time_single_pixel = 0.8028521537780762
+done moving!
+X_fast time passed= 0.5634922981262207
+t_get_data= 0.02792668342590332
+time_single_pixel = 0.7479977607727051
+time for line = 14.595223188400269
+done moving!
+done moving!
+X_fast time passed= 0.03191399574279785
+t_get_data= 0.02892303466796875
+time_single_pixel = 0.21941304206848145
+done moving!
+X_fast time passed= 0.5834381580352783
+t_get_data= 0.028922319412231445
+time_single_pixel = 0.7669482231140137
+done moving!
+X_fast time passed= 0.5675146579742432
+t_get_data= 0.029886960983276367
+time_single_pixel = 0.7101006507873535
+done moving!
+X_fast time passed= 0.5505270957946777
+t_get_data= 0.028921842575073242
+time_single_pixel = 0.7848999500274658
+done moving!
+X_fast time passed= 0.5644896030426025
+t_get_data= 0.02593088150024414
+time_single_pixel = 0.7499935626983643
+done moving!
+X_fast time passed= 0.5774824619293213
+t_get_data= 0.026929616928100586
+time_single_pixel = 0.8078389167785645
+done moving!
+X_fast time passed= 0.5585052967071533
+t_get_data= 0.025931596755981445
+time_single_pixel = 0.7420144081115723
+done moving!
+X_fast time passed= 0.5634920597076416
+t_get_data= 0.026926279067993164
+time_single_pixel = 0.698131799697876
+done moving!
+X_fast time passed= 0.5694756507873535
+t_get_data= 0.02792668342590332
+time_single_pixel = 0.8028528690338135
+done moving!
+X_fast time passed= 0.5614972114562988
+t_get_data= 0.025931835174560547
+time_single_pixel = 0.6981325149536133
+done moving!
+X_fast time passed= 0.5714702606201172
+t_get_data= 0.02393627166748047
+time_single_pixel = 0.7988615036010742
+done moving!
+X_fast time passed= 0.5664842128753662
+t_get_data= 0.026928186416625977
+time_single_pixel = 0.7479987144470215
+done moving!
+X_fast time passed= 0.5664842128753662
+t_get_data= 0.02892279624938965
+time_single_pixel = 0.8048477172851562
+done moving!
+X_fast time passed= 0.57346510887146
+t_get_data= 0.02792525291442871
+time_single_pixel = 0.7120940685272217
+done moving!
+X_fast time passed= 0.5654873847961426
+t_get_data= 0.028889894485473633
+time_single_pixel = 0.843743085861206
+done moving!
+X_fast time passed= 0.5644898414611816
+t_get_data= 0.026928186416625977
+time_single_pixel = 0.7001276016235352
+done moving!
+X_fast time passed= 0.5664851665496826
+t_get_data= 0.026927709579467773
+time_single_pixel = 0.7470011711120605
+done moving!
+X_fast time passed= 0.5714709758758545
+t_get_data= 0.026927947998046875
+time_single_pixel = 0.8038489818572998
+done moving!
+X_fast time passed= 0.5575084686279297
+t_get_data= 0.024934053421020508
+time_single_pixel = 0.7430126667022705
+done moving!
+X_fast time passed= 0.5614979267120361
+t_get_data= 0.024934053421020508
+time_single_pixel = 0.7450065612792969
+time for line = 14.629859209060669
+done moving!
+done moving!
+X_fast time passed= 0.03191399574279785
+t_get_data= 0.029920339584350586
+time_single_pixel = 0.22140717506408691
+done moving!
+X_fast time passed= 0.5754597187042236
+t_get_data= 0.02991962432861328
+time_single_pixel = 0.7619614601135254
+done moving!
+X_fast time passed= 0.5635256767272949
+t_get_data= 0.028922080993652344
+time_single_pixel = 0.7051136493682861
+done moving!
+X_fast time passed= 0.5644898414611816
+t_get_data= 0.028893232345581055
+time_single_pixel = 0.844740629196167
+done moving!
+X_fast time passed= 0.5605344772338867
+t_get_data= 0.027896404266357422
+time_single_pixel = 0.700127124786377
+done moving!
+X_fast time passed= 0.5664958953857422
+t_get_data= 0.027925968170166016
+time_single_pixel = 0.7948737144470215
+done moving!
+X_fast time passed= 0.5664830207824707
+t_get_data= 0.027925491333007812
+time_single_pixel = 0.704115629196167
+done moving!
+X_fast time passed= 0.5694756507873535
+t_get_data= 0.028922080993652344
+time_single_pixel = 0.8008565902709961
+done moving!
+X_fast time passed= 0.5614981651306152
+t_get_data= 0.02593064308166504
+time_single_pixel = 0.7430124282836914
+done moving!
+X_fast time passed= 0.5704731941223145
+t_get_data= 0.028923749923706055
+time_single_pixel = 0.7529850006103516
+done moving!
+X_fast time passed= 0.5644903182983398
+t_get_data= 0.028922557830810547
+time_single_pixel = 0.7489962577819824
+done moving!
+X_fast time passed= 0.567509651184082
+t_get_data= 0.027909517288208008
+time_single_pixel = 0.7510130405426025
+done moving!
+X_fast time passed= 0.5704517364501953
+t_get_data= 0.03291130065917969
+time_single_pixel = 0.7130696773529053
+done moving!
+X_fast time passed= 0.5515236854553223
+t_get_data= 0.024933338165283203
+time_single_pixel = 0.8228003978729248
+done moving!
+X_fast time passed= 0.57845139503479
+t_get_data= 0.0249330997467041
+time_single_pixel = 0.7619597911834717
+done moving!
+X_fast time passed= 0.5674824714660645
+t_get_data= 0.03191018104553223
+time_single_pixel = 0.7579727172851562
+done moving!
+X_fast time passed= 0.5575087070465088
+t_get_data= 0.028922557830810547
+time_single_pixel = 0.6941425800323486
+done moving!
+X_fast time passed= 0.5644912719726562
+t_get_data= 0.02991962432861328
+time_single_pixel = 0.8008582592010498
+done moving!
+X_fast time passed= 0.566483736038208
+t_get_data= 0.02892279624938965
+time_single_pixel = 0.7559769153594971
+done moving!
+X_fast time passed= 0.5644893646240234
+t_get_data= 0.02891254425048828
+time_single_pixel = 0.7479982376098633
+time for line = 14.583981275558472
+done moving!
+done moving!
+X_fast time passed= 0.029919862747192383
+t_get_data= 0.027913570404052734
+time_single_pixel = 0.21342968940734863
+done moving!
+X_fast time passed= 0.5355675220489502
+t_get_data= 0.02792644500732422
+time_single_pixel = 0.6751940250396729
+done moving!
+X_fast time passed= 0.567481517791748
+t_get_data= 0.027921676635742188
+time_single_pixel = 0.8447604179382324
+done moving!
+X_fast time passed= 0.5714683532714844
+t_get_data= 0.026928424835205078
+time_single_pixel = 0.755974531173706
+done moving!
+X_fast time passed= 0.5654869079589844
+t_get_data= 0.027925491333007812
+time_single_pixel = 0.7499940395355225
+done moving!
+X_fast time passed= 0.5535187721252441
+t_get_data= 0.027926206588745117
+time_single_pixel = 0.7380256652832031
+done moving!
+X_fast time passed= 0.5694763660430908
+t_get_data= 0.025930404663085938
+time_single_pixel = 0.7569754123687744
+done moving!
+X_fast time passed= 0.5704727172851562
+t_get_data= 0.027925729751586914
+time_single_pixel = 0.7579715251922607
+done moving!
+X_fast time passed= 0.5565106868743896
+t_get_data= 0.027925491333007812
+time_single_pixel = 0.7420141696929932
+done moving!
+X_fast time passed= 0.5704741477966309
+t_get_data= 0.02792525291442871
+time_single_pixel = 0.7110979557037354
+done moving!
+X_fast time passed= 0.5505266189575195
+t_get_data= 0.0249326229095459
+time_single_pixel = 0.7829055786132812
+done moving!
+X_fast time passed= 0.5784521102905273
+t_get_data= 0.029920339584350586
+time_single_pixel = 0.7200744152069092
+done moving!
+X_fast time passed= 0.5555117130279541
+t_get_data= 0.02792525291442871
+time_single_pixel = 0.7908821105957031
+done moving!
+X_fast time passed= 0.5595028400421143
+t_get_data= 0.027925968170166016
+time_single_pixel = 0.7928802967071533
+done moving!
+X_fast time passed= 0.5664827823638916
+t_get_data= 0.027926206588745117
+time_single_pixel = 0.7489948272705078
+done moving!
+X_fast time passed= 0.5704739093780518
+t_get_data= 0.02992081642150879
+time_single_pixel = 0.7539827823638916
+done moving!
+X_fast time passed= 0.5724687576293945
+t_get_data= 0.027925968170166016
+time_single_pixel = 0.7071089744567871
+done moving!
+X_fast time passed= 0.5674881935119629
+t_get_data= 0.02792525291442871
+time_single_pixel = 0.7948727607727051
+done moving!
+X_fast time passed= 0.5705006122589111
+t_get_data= 0.029924392700195312
+time_single_pixel = 0.8537154197692871
+done moving!
+X_fast time passed= 0.567481517791748
+t_get_data= 0.027925968170166016
+time_single_pixel = 0.7549793720245361
+time for line = 14.64781141281128
+total scan time: 484.84243965148926

@@ -1,0 +1,14 @@
+#Scantype: Linescan 
+#Date: 2024-12-12 14:54:40
+#Total scanning time: 6.669163465499878
+#Scan direction: X
+#X range: 2.49998 - 3.49998 um
+#Y range: 2.49939 - 3.49939 um
+#X pixels: 2, pixelsize: 1e-06 um
+#Y pixels: 2, pixelsize: 1e-06 um
+#Integration time per pixel: 0.1 ms
+#Columns: X [um], Y [um], counts
+2.499979999999999869e+00	2.499390000000000001e+00	nan
+3.499979999999999869e+00	2.499390000000000001e+00	nan
+2.499979999999999869e+00	3.499390000000000001e+00	nan
+3.499979999999999869e+00	3.499390000000000001e+00	nan

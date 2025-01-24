@@ -1,0 +1,50 @@
+# Changelog
+All notable changes to this project will be documented in this file.
+
+## [Unreleased]
+
+## [0.1.2] - 2018-11-06
+### Added
+ - The path mode functionality is now included again in the software package (refer to ###Fixed)
+ - The LabVIEW controls and indicators now contain the corresponding unit if known.
+ - Data coming from Spec or Permanent is now scaled and rescaled to numbers between 0.01 and 1000 for readability reasons. The unit will be adjusted.
+ - Scan Data will not be rescaled as there might be to many data points.
+ - Inputs with variable units can now be entered in 'basic units' (mV, Hz, ...). An internal C-function scales the entered value to the from the daisy-server required unit.
+### Changed
+ - Manual has been updated concerning the new handling of units and path mode
+### Fixed
+ - Path mode functionality has been reworked:
+	- Defining a grid now works via three points (centre point, x-axis-point and y-axis-point)
+	- Adding single points to the path list has been fixed
+	- Now it is possible to start the path in a grid mode or single points mode. The user has to decide which mode should be chosen. 
+### Removed
+ - The VIs 'setZResolution' and 'setZSlewrate' has been deleted from the software package, as their C-DLL couterparts have already been removed.
+
+
+## [0.1.1] - 2018-09-05
+### Added
+ - Ability to change the sampling time (avgTime) of a spectroscopy via the setspecparameters-Cluster
+### Fixed
+ - the calculation of the xy-position (function name "getXYPos") has been corrected
+
+
+## [0.1.0] - 2018-07-12
+### Added
+ - VI that incapsultes a GoTo-feature for x- and y-axis (goToXYPos.vi)
+ - Added the Sources "pos x", "pos y" and "counter"
+### Changed
+ - Entering a scan range in the scan parameters cluster now only adjustes the number of columns/lines (Pixelsize is unchanged)
+ - In the autoapproach cluster it is now possible to select axis 0...7.
+ - The example.vi does not set any values of the scanner but reads the current ones out
+### Fixed
+ - Pixelsize is now read out in correct unit (nm)
+ - Now no data file is overwritten when saving data from more than one channel
+ - setpoint variable from z control cluster is now scaled to correct unit
+ - Fixed the error not accepting some unit settings of the External Transfer Function
+ - xy maxrange is now read out in correct unit
+ - The value for xymaxRange is now saved for x- and y- axis.
+ - The data points coming from the spectroscopy engines now have the correct unit
+ - The example.vi now detects changes in the z control cluster
+### Removed
+ - Varibale "Absolute" from the z control cluster has been removed
+

@@ -1,0 +1,8 @@
+#Date: 2024-11-26 11:03:30
+#Scan direction: X
+#X range: 2.4993399999999992 - 6.499339999999998 um
+#Y range: 2.4999399999999996 - 5.499939999999999 um
+#X pixels: 4, pixelsize: 1e-06 um
+#Y pixels: 4, pixelsize: 1e-06 um
+#Integration time per pixel: 0.1 ms
+#Columns: X [um], Y [um], counts, freq_center, fwhm, contrast, sensitivity

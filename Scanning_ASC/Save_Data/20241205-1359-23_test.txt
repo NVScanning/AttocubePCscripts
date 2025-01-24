@@ -1,0 +1,10 @@
+#Scantype: Linescan 
+#Date: 2024-12-05 13:59:23
+#Total scanning time: 413.7123477458954
+#Scan direction: X
+#X range: 10.24849 - 19.748490000000004 um
+#Y range: 10.25001 - 19.750010000000007 um
+#X pixels: 20, pixelsize: 5e-07 um
+#Y pixels: 20, pixelsize: 5e-07 um
+#Integration time per pixel: 50.0 ms
+#Columns: X [um], Y [um], counts, freq_center, fwhm, contrast, sensitivity
