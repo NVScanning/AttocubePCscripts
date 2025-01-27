@@ -43,50 +43,14 @@ class AscStageApp(ttk.Frame):
         
         self.asc500 = asc.Device(binPath, dllPath)
         
-        try: 
-            outActive = \
-            self.asc500.base.getParameter(self.asc500.base.getConst('ID_OUTPUT_STATUS'),
-                              0)
-        except:
-            outActive = False
-            pass
-            
-        if outActive:
-            print("Server already connected!")
-        else:
-            self.asc500.base.startServer()
+        self.asc500.base.startServer() #Connect to server - opens a new one if none exists       
+        self.asc500.data.setDataEnable(1)
+        self.asc500.base.setOutputsWaiting(1)
+        self.asc500.scanner.setOutputsActive()
         
-            self.asc500.base.sendProfile(binPath + 'AFM_SampleScan_Daisy-Profil.ngp') #'AFM_TipScan_Daisy-Profil.ngp'
-            
-            self.asc500.data.setDataEnable(1)
-            self.asc500.base.setOutputsWaiting(1)
-            
-            sampTime = 1e-3
-            average = 0
-            chnNo = 0
-            chnNo1 = 1
-            bufSize = 256
-            
-            # self.asc500.data.configureChannel(chnNo,
-            #                               self.asc500.base.getConst('CHANCONN_PERMANENT'),
-            #                               self.asc500.base.getConst('CHANADC_AFMAMPL'),
-            #                               average,
-            #                               sampTime)
-            
-            # self.asc500.data.configureChannel(chnNo,
-            #                               self.asc500.base.getConst('CHANCONN_PERMANENT'),
-            #                               self.asc500.base.getConst('CHANADC_ZOUTINV'), 
-            #                               average,
-            #                               sampTime*5)
-
-            
-            print(self.asc500.data.getChannelConfig(chnNo))
-            
-            self.asc500.data.configureDataBuffering(chnNo, bufSize)
-            
-            
-            self.asc500.scanner.setOutputsActive()
-        
+        #Check configured channels
+        # for chnNo in range(13):
+        #     print(chnNo, self.asc500.data.getChannelConfig(chnNo))
         
         #Temperature and Travel limits
         self.asc500.limits.setTemperature(293.2) #kelvin
@@ -95,8 +59,6 @@ class AscStageApp(ttk.Frame):
         #self.Z_Travel_lim=self.asc500.limits.getZActualTravelLimit()
         self.closed = False
         # self.lock = threading.Lock()
-       
-        
        
         self.currPos = self.asc500.scanner.getPositionsXYRel()
         self.x_pos = self.currPos[0]
@@ -150,13 +112,11 @@ class AscStageApp(ttk.Frame):
         # self.home_x_button = tk.Button(x_frame, text="Home", command=self.home_x)
         # self.home_x_button.grid(row=5, column=0, columnspan=2)
         
-        self.up_button = tk.Button(x_frame, text="\u25B2", command=lambda: threading.Thread(target=self.move_x_up).start())
-
-        self.up_button.grid(row=1, column=0, columnspan=2)
+        self.up_button = tk.Button(x_frame, text="\u25B6", command=lambda: threading.Thread(target=self.move_x_up).start())
+        self.up_button.grid(row=1, column=1)
         
-        self.down_button = tk.Button(x_frame, text="\u25BC", command=lambda: threading.Thread(target=self.move_x_down).start())
-
-        self.down_button.grid(row=2, column=0, columnspan=2)
+        self.down_button = tk.Button(x_frame, text="\u25C0", command=lambda: threading.Thread(target=self.move_x_down).start())
+        self.down_button.grid(row=1, column=0)
         
         # Y-axis frame
         y_frame = tk.Frame(self)
@@ -181,16 +141,16 @@ class AscStageApp(ttk.Frame):
         # self.home_y_button = tk.Button(y_frame, text="Home", command=self.home_y)
         # self.home_y_button.grid(row=5, column=0, columnspan=2)
         
-        self.up_button = tk.Button(y_frame, text="\u25B2", command=lambda: threading.Thread(target=self.move_y_up).start())
+        self.up_button = tk.Button(y_frame, text="\u25B6", command=lambda: threading.Thread(target=self.move_y_up).start())
 
-        self.up_button.grid(row=1, column=0, columnspan=2)
+        self.up_button.grid(row=0, column=1)
         
-        self.down_button = tk.Button(y_frame, text="\u25BC", command=lambda: threading.Thread(target=self.move_y_down).start())
+        self.down_button = tk.Button(y_frame, text="\u25C0", command=lambda: threading.Thread(target=self.move_y_down).start())
 
-        self.down_button.grid(row=2, column=0, columnspan=2)
+        self.down_button.grid(row=0, column=0)
         
         # Z-axis frame
-        z_frame = tk.Frame(self, bg="gray")
+        z_frame = tk.Frame(self)
         z_frame.grid(row=1, column=1, padx=20, pady=10, sticky="nsew")
         z_frame.config(width=200, height=200) # Adjust width and height for aesthetic purposes
         

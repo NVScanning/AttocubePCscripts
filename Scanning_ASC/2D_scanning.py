@@ -164,8 +164,7 @@ class ScannerApp(tk.Tk):
         # Control Panel
         self.create_control_panel()
         self.protocol("WM_DELETE_WINDOW", self.on_close)
-     
-        
+
         
         # Line Graph Frame
         self.line_graph_frame = ttk.Frame(self)
@@ -210,6 +209,8 @@ class ScannerApp(tk.Tk):
             None
 
         """
+        
+        self.my_app.asc500.scanner.pauseScanner() # Stop the motors
         self.my_app.close()
         self.destroy()
         
@@ -229,58 +230,67 @@ class ScannerApp(tk.Tk):
         scanning_control_frame = ttk.Frame(control_frame)
         scanning_control_frame.grid(row=1, column=1, sticky="nsew")
 
-        ttk.Label(scanning_control_frame, text="X Length (um)").grid(row=1, column=0, padx=5, pady=5, sticky="w")
+        ttk.Label(scanning_control_frame, text="X Length (um)").grid(row=2, column=0, padx=5, pady=5, sticky="w")
         self.total_X_length = ttk.Entry(scanning_control_frame, width=10)
         self.total_X_length.insert(0, "10")
-        self.total_X_length.grid(row=1, column=1, padx=5, pady=5, sticky="w")
+        self.total_X_length.grid(row=2, column=1, padx=5, pady=5, sticky="w")
 
-        ttk.Label(scanning_control_frame, text="Y Length (um)").grid(row=1, column=2, padx=5, pady=5, sticky="w")
+        ttk.Label(scanning_control_frame, text="Y Length (um)").grid(row=2, column=2, padx=5, pady=5, sticky="w")
         self.total_Y_length = ttk.Entry(scanning_control_frame, width=10)
         self.total_Y_length.insert(0, "10")
-        self.total_Y_length.grid(row=1, column=3, padx=5, pady=5, sticky="w")
+        self.total_Y_length.grid(row=2, column=3, padx=5, pady=5, sticky="w")
 
-        ttk.Label(scanning_control_frame, text="Step X (um)").grid(row=2, column=0, padx=5, pady=5, sticky="w")
+        ttk.Label(scanning_control_frame, text="Step X (um)").grid(row=3, column=0, padx=5, pady=5, sticky="w")
         self.delta_X = ttk.Entry(scanning_control_frame, width=10)
         self.delta_X.insert(0, "1")
-        self.delta_X.grid(row=2, column=1, padx=5, pady=5, sticky="w")
+        self.delta_X.grid(row=3, column=1, padx=5, pady=5, sticky="w")
 
-        ttk.Label(scanning_control_frame, text="Step Y (um)").grid(row=2, column=2, padx=5, pady=5, sticky="w")
+        ttk.Label(scanning_control_frame, text="Step Y (um)").grid(row=3, column=2, padx=5, pady=5, sticky="w")
         self.delta_Y = ttk.Entry(scanning_control_frame, width=10)
         self.delta_Y.insert(0, "1")
-        self.delta_Y.grid(row=2, column=3, padx=5, pady=5, sticky="w")
+        self.delta_Y.grid(row=3, column=3, padx=5, pady=5, sticky="w")
 
-        ttk.Label(scanning_control_frame, text="Fast Delay (sec)").grid(row=3, column=0, padx=5, pady=5, sticky="w")
+        ttk.Label(scanning_control_frame, text="Fast Delay (sec)").grid(row=4, column=0, padx=5, pady=5, sticky="w")
         self.delay_fast = ttk.Entry(scanning_control_frame, width=10)
         self.delay_fast.insert(0, "0.1")
-        self.delay_fast.grid(row=3, column=1, padx=5, pady=5, sticky="w")
+        self.delay_fast.grid(row=4, column=1, padx=5, pady=5, sticky="w")
 
-        ttk.Label(scanning_control_frame, text="Slow Delay (sec)").grid(row=3, column=2, padx=5, pady=5, sticky="w")
+        ttk.Label(scanning_control_frame, text="Slow Delay (sec)").grid(row=4, column=2, padx=5, pady=5, sticky="w")
         self.delay_slow = ttk.Entry(scanning_control_frame, width=10)
         self.delay_slow.insert(0, "0.1")
-        self.delay_slow.grid(row=3, column=3, padx=5, pady=5, sticky="w")
+        self.delay_slow.grid(row=4, column=3, padx=5, pady=5, sticky="w")
 
-        ttk.Label(scanning_control_frame, text="File Name").grid(row=5, column=0, padx=5, pady=5, sticky="w")
+        ttk.Label(scanning_control_frame, text="File Name").grid(row=6, column=0, padx=5, pady=5, sticky="w")
         self.file_name = ttk.Entry(scanning_control_frame, width=20)
         self.file_name.insert(0, "test")
-        self.file_name.grid(row=5, column=1, padx=5, pady=5, sticky="w")
+        self.file_name.grid(row=6, column=1, padx=5, pady=5, sticky="w")
         
+        ttk.Label(scanning_control_frame, text="Probe").grid(row=7, column=2, padx=5, pady=5, sticky="w")
+        self.probe = ttk.Entry(scanning_control_frame, width=20)
+        self.probe.insert(0, " ")
+        self.probe.grid(row=7, column=3, padx=5, pady=5, sticky="w")
+        
+        ttk.Label(scanning_control_frame, text="Sample").grid(row=7, column=0, padx=5, pady=5, sticky="w")
+        self.sample = ttk.Entry(scanning_control_frame, width=20)
+        self.sample.insert(0, " ")
+        self.sample.grid(row=7, column=1, padx=5, pady=5, sticky="w")
         
         #self.file_name = ttk.Entry()  # File name input entry
         current_directory = os.getcwd()
         probe = "FR067-9C-1R2"
         sample = "AFM_grid"
-        self.save_directory = f"//WXPC724/Share/Data/{probe}/{sample}"  # Default save directory
         
+        self.save_directory = f"//WXPC724/Share/Data/{self.probe}/{self.sample}"  # Default save directory
         
         self.save_flag = tk.BooleanVar(value=False)  # Track the switch state
 
         # Save switch button (styled like a switch) next to the file name entry
         self.save_switch = ttk.Checkbutton(scanning_control_frame, text="Auto-Save", variable=self.save_flag, style='Switch.TCheckbutton')
-        self.save_switch.grid(row=5, column=2, padx=5, pady=5, sticky="w")
+        self.save_switch.grid(row=6, column=3, padx=5, pady=5, sticky="w")
         
         # Create the "Scan" button that executes the selected scan type
-        self.SCAN_button = ttk.Button(scanning_control_frame, text="Start Scan", command= self.start_selected_scan, style='Thin.TButton')
-        self.SCAN_button.grid(row=5, column=3, padx=5, pady=5, sticky="ew")
+        self.SCAN_button = ttk.Button(scanning_control_frame, text="Start Scan", command= self.start_selected_scan, style='Large.TButton')
+        self.SCAN_button.grid(row=0, column=0, padx=5, pady=5, sticky="ew")
         
         # Style the Combobox (if desired)
         style = ttk.Style()
@@ -288,10 +298,10 @@ class ScannerApp(tk.Tk):
         ### what is a combobox ###
 
         
-        ttk.Label(scanning_control_frame, text="Integration Time (ms)").grid(row=4, column=2, padx=5, pady=5, sticky="w")
+        ttk.Label(scanning_control_frame, text="Integration Time (ms)").grid(row=5, column=2, padx=5, pady=5, sticky="w")
         self.integration_time = ttk.Entry(scanning_control_frame, width=10)
         self.integration_time.insert(0, "0.1")
-        self.integration_time.grid(row=4, column=3, padx=5, pady=5, sticky="w")
+        self.integration_time.grid(row=5, column=3, padx=5, pady=5, sticky="w")
         
         
         # self.start_button = ttk.Button(scanning_control_frame, text="2D Scan", command=self.start_scan, style='Large.TButton')
@@ -302,17 +312,17 @@ class ScannerApp(tk.Tk):
         # Create the drop-down list (Combobox) for scan types
         self.scan_dropdown = ttk.Combobox(scanning_control_frame, textvariable=self.scan_type
                                           , values=["2D Scan", "2D F_Line Scan"], state="readonly", style='Large.TCombobox')
-        self.scan_dropdown.grid(row=7, column=0, padx=5, pady=5, sticky="ew")
+        self.scan_dropdown.grid(row=1, column=2, padx=5, pady=5, sticky="ew")
      
         
         self.start_button = ttk.Button(scanning_control_frame, text="Start Time Trace"
                                        , command=self.start_time_trace, style='Large.TButton')
-        self.start_button.grid(row=7, column=2, columnspan=1, padx=10, pady=10, sticky="ew")
+        self.start_button.grid(row=0, column=3, columnspan=1, padx=10, pady=10, sticky="ew")
         
         
         self.abort_button = ttk.Button(scanning_control_frame, text="Abort"
                                        , command=self.abort_scan, style='Large.TButton')
-        self.abort_button.grid(row=7, column=3, columnspan=1, padx=10, pady=10, sticky="ew")
+        self.abort_button.grid(row=0, column=1, columnspan=1, padx=10, pady=10, sticky="ew")
 
 
         # ttk.Label(scanning_control_frame, text="Slow Axis").grid(row=0, column=2, padx=5, pady=5, sticky="w")
@@ -320,18 +330,17 @@ class ScannerApp(tk.Tk):
         # self.slow_axis.insert(0, "X")
         # self.slow_axis.grid(row=0, column=3, padx=5, pady=5, sticky="w")
 
-        ttk.Label(scanning_control_frame, text="Scanning Direction (Fast Axis)").grid(row=0, column=0, padx=5, pady=5, sticky="w")
+        ttk.Label(scanning_control_frame, text="Scanning Direction (Fast Axis)").grid(row=1, column=0, padx=5, pady=5, sticky="w")
         self.fast_axis = tk.StringVar()
         self.scan_dropdown = ttk.Combobox(scanning_control_frame, textvariable=self.fast_axis
                                           , values=["X","Y"], state="readonly")
-        self.scan_dropdown.grid(row=0, column=1, padx=5, pady=5, sticky="w") 
+        self.scan_dropdown.grid(row=1, column=1, padx=5, pady=5, sticky="w") 
         
         
         
         # Add a label for the APD signal value
-        
         status_frame = ttk.Frame(control_frame)
-        status_frame.grid(row=5, column=0, columnspan=2, padx=5, pady=5, sticky="nsew")
+        status_frame.grid(row=6, column=0, columnspan=2, padx=5, pady=5, sticky="nsew")
 
         ttk.Label(status_frame, text="APD Signal", font=("Helvetica", 20)).grid(row=0, column=0, padx=5, pady=5, sticky="w")
         self.apd_signal_label = ttk.Label(status_frame, text="N/A"
@@ -347,32 +356,30 @@ class ScannerApp(tk.Tk):
         self.time_left_label.grid(row=1, column=2, padx=5, pady=5, sticky="w")
 
         self.Line_scan_velocity = ttk.Entry(scanning_control_frame)
-        self.Line_scan_velocity.grid(row=4,column =1, padx=5, pady = 5, sticky = "ew")
-        ttk.Label(scanning_control_frame, text="Velocity (um/s)").grid(row=4,column=0, padx=3, pady = 5, sticky = "w")
+        self.Line_scan_velocity.grid(row=5,column =1, padx=5, pady = 5, sticky = "ew")
+        ttk.Label(scanning_control_frame, text="Velocity (um/s)").grid(row=5,column=0, padx=3, pady = 5, sticky = "w")
 
         
         # Add other text boxes and labels as needed
-        
-
         self.optimize_button= ttk.Button(scanning_control_frame, text="Optimize", command=self.start_optimize, style='Large.TButton')
-        self.optimize_button.grid(row=6, column=0, columnspan=1, padx=5, pady=5, sticky="nsew")
+        self.optimize_button.grid(row=8, column=0, columnspan=1, padx=5, pady=5, sticky="nsew")
         
         
         #ttk.Label(Opt_frame, text="FC", font=("Helvetica", 20)).grid(row=0, column=0, padx=5, pady=5, sticky="w")
         self.Optfast_label = ttk.Label(scanning_control_frame, text=f"F: {self.f_pos:0.5f}",font=("Helvetica", 20), foreground="ghost white", background="red3", width=9)
-        self.Optfast_label.grid(row=6, column=1, padx=5, pady=5, sticky="w")
+        self.Optfast_label.grid(row=8, column=1, padx=5, pady=5, sticky="w")
 
         #ttk.Label(Opt_frame, text="SC", font=("Helvetica", 20)).grid(row=0, column=1, padx=5, pady=5, sticky="w")
         self.OptSlow_label = ttk.Label(scanning_control_frame, text=f"S: {self.s_pos:0.5f}",font=("Helvetica", 20), foreground="ghost white", background="#0077FF", width=9)
-        self.OptSlow_label.grid(row=6, column=2, padx=5, pady=5, sticky="w")
+        self.OptSlow_label.grid(row=8, column=2, padx=5, pady=5, sticky="w")
         
         
         #ttk.Label(Opt_frame, text="SC", font=("Helvetica", 20)).grid(row=0, column=1, padx=5, pady=5, sticky="w")
         self.focal_label = ttk.Label(scanning_control_frame, text=f"f: {self.s_pos:0.5f}",font=('italic',20), foreground="ghost white", background="green", width=9)
-        self.focal_label.grid(row=6, column=3, padx=5, pady=5, sticky="w")
+        self.focal_label.grid(row=8, column=3, padx=5, pady=5, sticky="w")
         # Additional Frame to contain the switch and the entry box
         self.switch_frame = ttk.Frame(scanning_control_frame)
-        self.switch_frame.grid(row=5, column=2, padx=5, pady=5, sticky="w")
+        self.switch_frame.grid(row=8, column=2, padx=5, pady=5, sticky="w")
 
         # # Step 1: Define the variable for the switch
         # self.switch_var = tk.BooleanVar(value=False)  # default to OFF
@@ -394,7 +401,7 @@ class ScannerApp(tk.Tk):
         # Drop-Down Menu (ComboBox)
         self.dropdown_var = tk.StringVar()
         self.dropdown_menu = ttk.Combobox(scanning_control_frame, textvariable=self.dropdown_var, values=["PL", "ODMR"], state="readonly", style='TCombobox')
-        self.dropdown_menu.grid(row=7, column=1, padx=(6, 0), pady=(8,0), sticky="w")
+        self.dropdown_menu.grid(row=1, column=3, padx=(6, 0), pady=(8,0), sticky="w")
         self.dropdown_menu.current(0)  # Set default selection to the first option    
         self.initialize_graph()
     # def toggle_entry(self):
@@ -682,7 +689,7 @@ class ScannerApp(tk.Tk):
             Time_b= []
             counts = []
         
-            x0, y0 = self.my_app.get_xy_position()
+            x0, y0 = self.my_app.asc500.scanner.getPositionsXYRel()
             print(f'pos: x: {x0}, y: {y0}')
             
             #bottom left of center scan
@@ -1056,6 +1063,7 @@ class ScannerApp(tk.Tk):
         self.ax5.relim()  # Recompute the limits
         self.ax5.autoscale_view()  # Autoscale the view
         self.canvas5.draw_idle()  # Update the canvas
+        
     def update_plot(self, x_data, y_data1, fitted_y_data1):
         
         """
@@ -1612,11 +1620,9 @@ class ScannerApp(tk.Tk):
         #self.my_app.closed = True
         self.scanning = False
         self.status_label.config(text="Idle")
-        self.my_app.asc500.scanner.stopScanner()
-        
         
         # Stop the motors
-
+        self.my_app.asc500.scanner.pauseScanner()
     
         # Cleanup PL Module
         if hasattr(self, 'pl_module'):

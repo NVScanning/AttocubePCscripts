@@ -174,7 +174,8 @@ class ODMRModule:
     def on_stop_job(self):
         if self.job:
             self.job.halt()
-            
+        
+        self.qm.octave.set_rf_output_mode("NV", RFOutputMode.off)
         print("Job stopped.")
         
 
@@ -356,7 +357,7 @@ class ODMRModule:
                 ODMRModule.lorentzian(x, x2, a3, gamma3, bg))
 
     def cleanup(self):
-        self.qm.octave.set_rf_output_mode("NV", RFOutputMode.trig_normal)
+        
         try:
             if self.state == 'fetching':
                 self.stop_fetching()
