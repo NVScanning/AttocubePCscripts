@@ -280,8 +280,7 @@ class ScannerApp(tk.Tk):
         probe = "FR067-9C-1R2"
         sample = "AFM_grid"
         
-        self.save_directory = f"//WXPC724/Share/Data/{self.probe}/{self.sample}"  # Default save directory
-        
+       
         self.save_flag = tk.BooleanVar(value=False)  # Track the switch state
 
         # Save switch button (styled like a switch) next to the file name entry
@@ -500,6 +499,7 @@ class ScannerApp(tk.Tk):
 
         # Get the base filename from the GUI entry field
         base_filename = self.file_name.get()
+        self.save_directory = f"//WXPC724/Share/Data/{self.probe.get()}/{self.sample.get()}"  # Default save directory
         # Create the full path for saving the data, adding a .txt extension
         #print(f'full_p: {full_path}')
         directory = self.save_directory + f"/{time.strftime('%Y%m%d')}"
@@ -825,6 +825,7 @@ class ScannerApp(tk.Tk):
             AFM_data = np.concatenate((pos_data,z_out_data),axis=1)*1E6
             
             base_filename = self.file_name.get()
+            self.save_directory = f"//WXPC724/Share/Data/{self.probe.get()}/{self.sample.get()}"  # Default save directory
             directory = self.save_directory + f"/{time.strftime('%Y%m%d')}"
             # Create the full path for saving the data, adding a .txt extension
             full_path_AFM = os.path.join(directory, f"{time.strftime('%Y%m%d-%H%M-%S')}_{base_filename}_AFM.txt")  
