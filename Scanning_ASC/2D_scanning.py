@@ -491,7 +491,7 @@ class ScannerApp(tk.Tk):
             self.update_popup(popup, im_popup, canvas_popup, selected_value_key)
 
             
-    def save_heatmap_data(self):
+    def save_heatmap_data(self, selection='PL'):
         """
         Saves each key-value pair from heatmap_data_dict to separate text files in the specified directory, 
         appending a timestamp to each file. Creates the directory if it doesn’t exist.
@@ -532,6 +532,10 @@ class ScannerApp(tk.Tk):
             np.savetxt(f, data_for_file, delimiter='\t')
         print(f"Heatmap data saved at {full_path}")
         np.savez(full_path.strip('.txt'), **self.heatmap_data_dict)
+        
+        print(selection)
+        if selection=='ODMR':
+            np.savez(full_path.strip('.txt')+'_ODMRData', data=self.odmr_data)
         
     def update_popup(self, popup, im_popup, canvas_popup, selected_value_key):
         """
@@ -1542,7 +1546,7 @@ class ScannerApp(tk.Tk):
                         self.heatmap_data_dict[key][idx1, idx2] = data_dict.get(key, 0)
                     
                     # Update the fitted plot if ODMR
-                    if module=='ODMR':
+                    if selection=='ODMR':
                         
                         self.update_plot(data_dict.get('x_data'), data_dict.get('y_data'), data_dict.get('fitted_y_data'))
                         self.odmr_data.append([data_dict.get('y_data')])
@@ -1554,8 +1558,17 @@ class ScannerApp(tk.Tk):
                     self.after(0, self.update_displayed_heatmap)
                     self.after(0, update_ui)
                     
+
                     if self.save_flag.get():  # If auto-save is ON
-                        self.save_heatmap_data()
+                        end_time = time.time()
+                        scantime = end_time - start_time_0
+                        self.headerlines = [f"#Scantype: Stepscan \n#Date: {time.strftime('%Y-%m-%d %H:%M:%S')}", 
+                                            f"\n#Total scanning time: {scantime}", f"\n#Scan direction: {self.fast_axis.get()}", 
+                                           f"\n#X range: {self.x_array[0]} - {self.x_array[-1]} um", f"\n#Y range: {self.y_array[0]} - {self.y_array[-1]} um", 
+                                           f"\n#X pixels: {steps[0]}, pixelsize: {stepsize[0]} um", f"\n#Y pixels: {steps[1]}, pixelsize: {stepsize[1]} um",
+                                           f"\n#Integration time per pixel: {module.total_integration_time/1E6} ms", "\n#Columns:"]
+                       
+                        self.save_heatmap_data(module=module)
                     
                     #print(f'after_plot = {time.time()}')
                     
@@ -1585,13 +1598,12 @@ class ScannerApp(tk.Tk):
             # If auto-save is off update the heatmap data 
             if not self.save_flag.get():
                 print("Auto-save is OFF. Saving heatmap data after scan completion...")
-                self.save_heatmap_data()  
+                self.save_heatmap_data(selection=selection)  
             
-            if module =='ODMR':
+            if selection =='ODMR':
                 frequencies = module.x_data
                 
                 
-            
             if module.state == 'job_started':
                 module.stop_job()
 

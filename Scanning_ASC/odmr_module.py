@@ -116,34 +116,62 @@ class ODMRModule:
             times = declare(int, size=100)
             counts = declare(int)
             counts_st = declare_stream()
-            n_st = declare_stream()
             # iteration = declare(int)
+            m_avg = self.N_average
+            counts_dark_st = declare_stream()  # stream for counts
+
           
             
-            with for_(n, 0, n < self.N_average, n + 1):
+            with for_(i, 0, i < flattened + 1, i + 1):
                 
+                with for_(m, 0, m < m_avg, m + 1):
+               
+                    with for_(*from_array(f, self.f_vec)):
+                        
+                      #   update_frequency("NV", f)  # update frequency
+                      #   align()  # align all elements
+                      # #  play("cw" * amp(Vrms * 2 ** 0.5), "NV", duration=self.readout_len * u.ns)
+                      #   play("cw" * amp(0.5), "NV", duration=self.readout_len * u.ns)
+                      #   play("laser_ON", "AOM1", duration=self.readout_len * u.ns)
+                      #   wait(1_000 * u.ns, "SPCM1")
+                      #   measure("long_readout", "SPCM1", None, time_tagging.analog(times, self.readout_len, counts))
+                        
+                      #   save(counts, counts_st)  # save counts on stream
+                        
+                      #   wait(self.readout_len*u.ns)
+                        
+                        # Update the frequency of the digital oscillator linked to the element "NV"
+                        update_frequency("NV", f)
+                        # align all elements before starting the sequence
+                        align()
+                        # Play the mw pulse...
+                        play("cw" * amp(0.5), "NV", duration=self.readout_len * u.ns)
+                        # ... and the laser pulse simultaneously (the laser pulse is delayed by 'laser_delay_1')
+                        play("laser_ON", "AOM1", duration=self.readout_len * u.ns)
+                        wait(1_000 * u.ns, "SPCM1")  # so readout don't catch the first part of spin reinitialization
+                        # Measure and detect the photons on SPCM1
+                        measure("long_readout", "SPCM1", None, time_tagging.analog(times, self.readout_len, counts))
 
-                with for_(i, 0, i < flattened + 1, i + 1):
-                    
-                    with for_(m, 0, m < m_avg, m + 1):
-                   
-                        with for_(*from_array(f, self.f_vec)):
-                            
-                            update_frequency("NV", f)  # update frequency
-                            align()  # align all elements
-                            play("cw" * amp(Vrms * 2 ** 0.5), "NV", duration=self.readout_len * u.ns)
-                            #play("cw" * amp(1), "NV", duration=self.readout_len * u.ns)
-                            play("laser_ON", "AOM1", duration=self.readout_len * u.ns)
-                            wait(1_000 * u.ns, "SPCM1")
-                            measure("long_readout", "SPCM1", None, time_tagging.analog(times, self.readout_len, counts))
-                            
-                            save(counts, counts_st)  # save counts on stream
-                            save(n, n_st)  # save number of iteration inside for_loop
-                    pause()
+                        save(counts, counts_st)  # save counts on stream
+
+                        #assign(counts1, counts+counts1)
+                        # Wait and align all elements before measuring the dark events
+                        wait(wait_between_runs * u.ns)
+                        align()  # align all elements
+                        # Play the mw pulse with zero amplitude...
+                        play("cw" * amp(0), "NV", duration=self.readout_len * u.ns)
+                        # ... and the laser pulse simultaneously (the laser pulse is delayed by 'laser_delay_1')
+                        play("laser_ON", "AOM1", duration=self.readout_len * u.ns)
+                        wait(1_000 * u.ns, "SPCM1")  # so readout don't catch the first part of spin reinitialization
+                        measure("long_readout", "SPCM1", None, time_tagging.analog(times, self.readout_len, counts))
+
+                        save(counts, counts_dark_st)  # save counts on stream
+
+                        wait(wait_between_runs * u.ns)
+            pause()
 
             with stream_processing():
                 counts_st.buffer(m_avg, len(self.f_vec)).map(FUNCTIONS.average(0)).save_all("counts")
-                n_st.save("iteration")
          
         self.job = self.qm.execute(cw_odmr)  
         self.job_start_time = time.time()  # Record the start time
@@ -218,100 +246,101 @@ class ODMRModule:
         self.fitted_y_data= np.zeros(np.shape(self.f_vec))
         self.y_data=np.zeros(np.shape(self.f_vec))
         
-        T= True
-        while T:
-            
-            try:
-                self.job.resume()
-                    # Wait until the program reaches the 'pause' statement again, indicating that the QUA program is done
-                while not job.is_paused() and job.status == 'running':
-                    time.sleep(0.1)
-            
-            except:
-                pass
+
+        try:
+            self.job.resume()
+                # Wait until the program reaches the 'pause' statement again, indicating that the QUA program is done
+            while not job.is_paused() and job.status == 'running':
+                time.sleep(0.1)
+        
+        except:
+            pass
                       
-            print('wa')
-            self.counts_handle.wait_for_values(1)
-            #self.n_handle.wait_for_values(1)
-            print('it')
+        print('wa')
+        self.counts_handle.wait_for_values(1)
+        #self.n_handle.wait_for_values(1)
+        print('it')
+
     
+        #print(f'state before data: {self.state}')
+       
+        #print('here')
+        c = self.counts_handle.count_so_far()
         
-            #print(f'state before data: {self.state}')
-           
-            #print('here')
+        while c <= f_idx+2:
+            time.sleep(0.1)
+            print(f'waiting for results, c:{c}, pixel:{f_idx+2}')
             c = self.counts_handle.count_so_far()
-            counts = self.counts_handle.fetch_all()
-    
-            #print(f'conts {counts}')
-            print(f'c: {c}')
-            #iteration = self.n_handle.fetch_all()
         
-                    
-            
-            #print(f'odmr x:{self.x_data}')
-            
-            self.x_data = (NV_LO_freq + self.f_vec) / u.MHz # x axis [frequencies]
-            #self.x_data = (NV_LO_freq + self.f_vec*u.MHz) / u.GHz
-            #self.y_data = self.generate_fake_data( self.x_data, self.fit_type) 
-            self.y_data = (counts[-1][0] / 1000 / (self.readout_len * 1e-9)) # counts( [frequencies])
-            #print(f"y_data: {self.y_data}")
-            # print(f"fitted_y: {self.fitted_y_data}")
-            
-            
-            fit_functions = {
-                "Single Lorentzian": (self.lorentzian, [self.x_data[np.argmin(self.y_data)], np.max(self.y_data), 10, np.max(self.y_data)]),
-                "Double Lorentzian": (self.double_lorentzian, [self.x_data[np.argmax(self.y_data)] , np.max(self.y_data), 10,
-                                                                self.x_data[np.argmax(self.y_data)] + 0.01, np.max(self.y_data) / 2, 10]),
-                "Triple Lorentzian": (self.triple_lorentzian, [self.x_data[np.argmax(self.y_data)], np.max(self.y_data), 10,
-                                                                self.x_data[np.argmax(self.y_data)]  + 0.01, np.max(self.y_data) / 2, 10,
-                                                                self.x_data[np.argmax(self.y_data)] - 0.01, np.max(self.y_data) / 3, 10])
-            }
+        counts = self.counts_handle.fetch_all()
+
+        #print(f'conts {counts}')
+        #print(f'c: {c}')
+        #iteration = self.n_handle.fetch_all()
     
-            # Define fitting functions and initial parameters
-            fit_function, p0 = fit_functions[self.fit_type]
-            # try:
-            popt, _ = curve_fit(fit_function, self.x_data, self.y_data, p0=p0, maxfev=10000)
-            # except RuntimeError as e:
-            #     print(f"Fitting error: {e}")
-            #     continue
-    
-            self.fitted_y_data = fit_function(self.x_data, *popt)
-            #print(f'fitdatashape{np.shape(self.fitted_y_data)}')
-    
-            center_freq = popt[0]
-            fwhm = 2 * popt[2]
-            contrast = (np.max(self.fitted_y_data) - np.min(self.fitted_y_data)) / np.max(self.fitted_y_data)
-            I0 = np.max(self.y_data)
-            h = 6.62607015e-34  # Planck's constant
-            g = 2.00231930436256  # g-factor for electron
-            mu_B = 9.2740100783e-24  # Bohr magneton
-    
-            sensitivity = (h * fwhm) / (g * mu_B * contrast * np.sqrt(I0))
-            elapsed_time = time.time() - self.job_start_time
-            
-            z_out = self.z_control.getPositionZ()
-            pos_out = self.scannerpos.getPositionsXYRel()
-    
-            self.data_dict.update({
-                'x [um]': pos_out[0]*1E6,
-                'y [um]': pos_out[1]*1E6,
-                'AFM height [um]': z_out*1E6,
-                'counts [kc/s]': np.mean(self.y_data),
-                'freq_center': center_freq,
-                'fwhm': fwhm,
-                'contrast': contrast,
-                'sensitivity': sensitivity,
-                'time_elapsed': elapsed_time,
-                'x_data': self.x_data,
-                'y_data': self.y_data,
-                'fitted_y_data': self.fitted_y_data
-            })
-            #print(f'data dict: {self.data_dict}')
-    
-            # if self.iteration_sum >= self.N_average:
-            #     self.finish_getting_data()  # Trigger state transition when the iteration limit is reached
-            if f_idx+1 <= len(counts):
-                break
+        #print(f'odmr x:{self.x_data}')
+        
+        self.x_data = (NV_LO_freq + self.f_vec) / u.MHz # x axis [frequencies]
+        #self.x_data = (NV_LO_freq + self.f_vec*u.MHz) / u.GHz
+        #self.y_data = self.generate_fake_data( self.x_data, self.fit_type) 
+        self.y_data = (counts[-1][0] / 1000 / (self.readout_len * 1e-9)) # counts( [frequencies])
+        #print(f"y_data: {self.y_data}")
+        # print(f"fitted_y: {self.fitted_y_data}")
+        
+        
+        fit_functions = {
+            "Single Lorentzian": (self.lorentzian, [self.x_data[np.argmin(self.y_data)], np.max(self.y_data), 10, np.max(self.y_data)]),
+            "Double Lorentzian": (self.double_lorentzian, [self.x_data[np.argmax(self.y_data)] , np.max(self.y_data), 10,
+                                                            self.x_data[np.argmax(self.y_data)] + 0.01, np.max(self.y_data) / 2, 10]),
+            "Triple Lorentzian": (self.triple_lorentzian, [self.x_data[np.argmax(self.y_data)], np.max(self.y_data), 10,
+                                                            self.x_data[np.argmax(self.y_data)]  + 0.01, np.max(self.y_data) / 2, 10,
+                                                            self.x_data[np.argmax(self.y_data)] - 0.01, np.max(self.y_data) / 3, 10])
+        }
+
+        # Define fitting functions and initial parameters
+        fit_function, p0 = fit_functions[self.fit_type]
+        # try:
+        popt, _ = curve_fit(fit_function, self.x_data, self.y_data, p0=p0, maxfev=10000)
+        # except RuntimeError as e:
+        #     print(f"Fitting error: {e}")
+        #     continue
+
+        self.fitted_y_data = fit_function(self.x_data, *popt)
+        #print(f'fitdatashape{np.shape(self.fitted_y_data)}')
+
+        center_freq = popt[0]
+        fwhm = 2 * popt[2]
+        contrast = (np.max(self.fitted_y_data) - np.min(self.fitted_y_data)) / np.max(self.fitted_y_data)
+        I0 = np.max(self.y_data)
+        h = 6.62607015e-34  # Planck's constant
+        g = 2.00231930436256  # g-factor for electron
+        mu_B = 9.2740100783e-24  # Bohr magneton
+
+        sensitivity = (h * fwhm) / (g * mu_B * contrast * np.sqrt(I0))
+        elapsed_time = time.time() - self.job_start_time
+        
+        z_out = self.z_control.getPositionZ()
+        pos_out = self.scannerpos.getPositionsXYRel()
+
+        self.data_dict.update({
+            'x [um]': pos_out[0]*1E6,
+            'y [um]': pos_out[1]*1E6,
+            'AFM height [um]': z_out*1E6,
+            'counts [kc/s]': np.mean(self.y_data),
+            'freq_center': center_freq,
+            'fwhm': fwhm,
+            'contrast': contrast,
+            'sensitivity': sensitivity,
+            'time_elapsed': elapsed_time,
+            'x_data': self.x_data,
+            'y_data': self.y_data,
+            'fitted_y_data': self.fitted_y_data
+        })
+        #print(f'data dict: {self.data_dict}')
+
+        # if self.iteration_sum >= self.N_average:
+        #     self.finish_getting_data()  # Trigger state transition when the iteration limit is reached
+
        
         print("done!")
      
