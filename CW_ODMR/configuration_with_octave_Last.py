@@ -46,7 +46,7 @@ octave_config = octave_declaration(octaves)
 # VARIABLES #
 #############
 # Frequencies
-NV_IF_freq = 40 * u.MHz
+NV_IF_freq = 50 * u.MHz
 NV_LO_freq = 2.8735 * u.GHz
 
 # Pulses lengths
@@ -227,7 +227,7 @@ config = {
                     "LO_frequency": NV_LO_freq,
                     "LO_source": "internal",  # can be external or internal. internal is the default
                     "output_mode": "always_on",  # can be: "always_on" / "always_off"/ "triggered" / "triggered_reversed". "always_off" is the default
-                    "gain": 0,  # can be in the range [-20 : 0.5 : 20]dB
+                    "gain": -10,  # can be in the range [-20 : 0.5 : 20]dB
                 },
             },
             "connectivity": "con1",

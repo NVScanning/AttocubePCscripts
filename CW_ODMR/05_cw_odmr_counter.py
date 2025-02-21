@@ -21,6 +21,8 @@ from qm import SimulationConfig
 import matplotlib.pyplot as plt
 from configuration_with_octave_Last import *
 import numpy as np
+import os
+import time as time_module
 
 
 ###################
@@ -28,9 +30,11 @@ import numpy as np
 ###################
 
 # Frequency vector
-f_vec = np.arange(-70 * u.MHz, 70 * u.MHz, 0.5 * u.MHz)
+f_vec = np.arange(-50 * u.MHz, 50 * u.MHz, 0.2 * u.MHz)
+#f_vec = np.array([0*u.MHz])
 n_avg = 100000  # number of averages
 readout_len = long_meas_len_1  # Readout duration for this experiment
+mw_amp = 0.1
 
 with program() as cw_odmr:
     times = declare(int, size=100)  # QUA vector for storing the time-tags
@@ -50,7 +54,7 @@ with program() as cw_odmr:
             # align all elements before starting the sequence
             align()
             # Play the mw pulse...
-            play("cw" * amp(1), "NV", duration=readout_len * u.ns)
+            play("cw" * amp(mw_amp), "NV", duration=readout_len * u.ns)
             # ... and the laser pulse simultaneously (the laser pulse is delayed by 'laser_delay_1')
             play("laser_ON", "AOM1", duration=readout_len * u.ns)
             wait(1_000 * u.ns, "SPCM1")  # so readout don't catch the first part of spin reinitialization
@@ -73,7 +77,7 @@ with program() as cw_odmr:
             save(counts, counts_dark_st)  # save counts on stream
 
             wait(wait_between_runs * u.ns)
-
+            
             save(n, n_st)  # save number of iteration inside for_loop
         save(counts1, counts_st1)  # save counts on stream
         assign(counts1, 0)
@@ -125,7 +129,7 @@ else:
         # Plot data
         ax1.cla()
         ax2.cla()
-        ax1.plot((NV_LO_freq * 0 + f_vec) / u.MHz, counts / 1000 / (readout_len * 1e-9), label="photon counts")
+        ax1.plot((NV_LO_freq * 0 + f_vec) / u.MHz, counts / 1000 / (readout_len * 1e-9), 'o', label="photon counts")
         ax1.plot((NV_LO_freq * 0 + f_vec) / u.MHz, counts_dark / 1000 / (readout_len * 1e-9), label="dark counts")
         new_counts = counts_handle.fetch_all() 
         print("value")
@@ -140,8 +144,22 @@ else:
         print(counts2)
         print(type(time))
         ax2.plot(time,counts2)
-        ax2.set_xlabel("Times")
+        ax2.set_xlabel("Time (s)")
         ax2.set_ylabel("Counts (kcps)")
         plt.pause(0.1)
         print(f'Number of Iterations:{iteration}')
+        
+    
     qm.octave.set_rf_output_mode("NV", RFOutputMode.off)
+
+    directory = f"//WXPC724/Share/Data/ODMRnearSample/20250220"
+    # Create the full path for saving the data, adding a .txt extension
+    full_path = os.path.join(directory, f"{time_module.strftime('%Y%m%d-%H%M-%S')}_InContact_AboveSample2_mw_amp_0{mw_amp*10}")  
+    #Ensure the directory exists
+    os.makedirs(directory, exist_ok=True)
+    
+    frequencies = (NV_LO_freq * 0 + f_vec) / u.MHz
+    counts = counts / 1000 / (readout_len * 1e-9)
+    counts_dark = counts_dark / 1000 / (readout_len * 1e-9)
+    
+    np.savez(full_path, frequencies=frequencies, counts=counts, counts_dark=counts_dark, counts2=counts2, time=time, mw_amp=mw_amp)

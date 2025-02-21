@@ -71,7 +71,7 @@ class AscStageApp(ttk.Frame):
 
         self.step_x = 1.000
         self.step_y = 1.000
-        #self.step_z = 1.000
+        #self.step_z = 1.000f
         
         # Position label
         self.label_x = tk.Label(self, text=f"X: {self.x_pos:0.5f}", font=("Helvetica", 24), bg="black", fg="green", width=12)

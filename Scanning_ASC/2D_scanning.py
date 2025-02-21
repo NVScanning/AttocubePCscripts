@@ -535,7 +535,7 @@ class ScannerApp(tk.Tk):
         
         print(selection)
         if selection=='ODMR':
-            np.savez(full_path.strip('.txt')+'_ODMRData', data=self.odmr_data)
+            np.savez(full_path.strip('.txt')+'_ODMRData', counts=self.odmr_data, frequencies=self.odmr_frequencies)
         
     def update_popup(self, popup, im_popup, canvas_popup, selected_value_key):
         """
@@ -1128,8 +1128,6 @@ class ScannerApp(tk.Tk):
                        self.my_app.move_x_to(fast_correct)
                        time.sleep(0.01)
 
-                           
-                           
                    elif(self.fast_axis.get() == 'Y'):
                        fast0=y0
                        x_int=x0
@@ -1420,12 +1418,13 @@ class ScannerApp(tk.Tk):
                 print("here in ODMR after close ")
                 
                 self.odmr_module.set_odmr_params(self.odmr_popup.params)
-                self.odmr_data = []
                 self.odmr_fit_data = []
+                self.odmr_data = []
                 
                 
             module.z_control = self.my_app.asc500.zcontrol
             module.scannerpos = self.my_app.asc500.scanner
+            module.app = app
                 
                
             if module.state == 'job_started':
@@ -1549,6 +1548,7 @@ class ScannerApp(tk.Tk):
                     if selection=='ODMR':
                         
                         self.update_plot(data_dict.get('x_data'), data_dict.get('y_data'), data_dict.get('fitted_y_data'))
+                        self.odmr_frequencies = data_dict.get('x_data')
                         self.odmr_data.append([data_dict.get('y_data')])
                         self.odmr_fit_data.append([data_dict.get('fitted_y_data')])
                         
@@ -1568,7 +1568,7 @@ class ScannerApp(tk.Tk):
                                            f"\n#X pixels: {steps[0]}, pixelsize: {stepsize[0]} um", f"\n#Y pixels: {steps[1]}, pixelsize: {stepsize[1]} um",
                                            f"\n#Integration time per pixel: {module.total_integration_time/1E6} ms", "\n#Columns:"]
                        
-                        self.save_heatmap_data(module=module)
+                        self.save_heatmap_data(selection=selection)
                     
                     #print(f'after_plot = {time.time()}')
                     

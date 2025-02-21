@@ -39,6 +39,8 @@ class ODMRModule:
         
         self.z_control = None
         self.scannerpos = None
+        self.app = None
+        self.counts_old = []
 
         # Initialize the state machine
         self.machine = Machine(model=self, states=ODMRModule.states, initial='disconnected')
@@ -113,10 +115,11 @@ class ODMRModule:
             n = declare(int)
             m  = declare(int)
             i = declare(int)  
+            n_st = declare_stream()
             times = declare(int, size=100)
             counts = declare(int)
             counts_st = declare_stream()
-            # iteration = declare(int)
+            iteration = declare(int)
             m_avg = self.N_average
             counts_dark_st = declare_stream()  # stream for counts
 
@@ -145,7 +148,7 @@ class ODMRModule:
                         # align all elements before starting the sequence
                         align()
                         # Play the mw pulse...
-                        play("cw" * amp(0.5), "NV", duration=self.readout_len * u.ns)
+                        play("cw" * amp(0.1), "NV", duration=self.readout_len * u.ns)
                         # ... and the laser pulse simultaneously (the laser pulse is delayed by 'laser_delay_1')
                         play("laser_ON", "AOM1", duration=self.readout_len * u.ns)
                         wait(1_000 * u.ns, "SPCM1")  # so readout don't catch the first part of spin reinitialization
@@ -166,12 +169,15 @@ class ODMRModule:
                         measure("long_readout", "SPCM1", None, time_tagging.analog(times, self.readout_len, counts))
 
                         save(counts, counts_dark_st)  # save counts on stream
+                        save(m, n_st)  # save number of iteration inside for_loop
 
                         wait(wait_between_runs * u.ns)
-            pause()
-
+                        
+                pause()
+                    
             with stream_processing():
-                counts_st.buffer(m_avg, len(self.f_vec)).map(FUNCTIONS.average(0)).save_all("counts")
+                counts_st.buffer(m_avg, len(self.f_vec)).map(FUNCTIONS.average(0)).save("counts")
+                n_st.save("iteration")
          
         self.job = self.qm.execute(cw_odmr)  
         self.job_start_time = time.time()  # Record the start time
@@ -182,7 +188,7 @@ class ODMRModule:
         print("Started fetching data.")
         self.res_handles = self.job.result_handles
         self.counts_handle = self.res_handles.get("counts")
-        self.n_handle = self.res_handles.get("iteration")
+        self.iteration_handle = self.res_handles.get("iteration")
         if not self.job:
             print("No job to fetch data from.")
             return
@@ -238,7 +244,7 @@ class ODMRModule:
         print("in get data")
       
         
-        #self.iteration_handle.wait_for_values(1)
+        self.iteration_handle.wait_for_values(1)
         print(f'state:{self.state}')
         
         self.iteration_sum=0
@@ -258,47 +264,76 @@ class ODMRModule:
                       
         print('wa')
         self.counts_handle.wait_for_values(1)
-        #self.n_handle.wait_for_values(1)
+        self.iteration_handle.wait_for_values(1)
         print('it')
 
-    
-        #print(f'state before data: {self.state}')
-       
-        #print('here')
-        c = self.counts_handle.count_so_far()
+        iteration = self.iteration_handle.fetch("iteration")
+        print(f"iteration: {iteration}")
         
-        while c <= f_idx+2:
+        # while iteration < self.N_average - 1 and self.app.scanning:
+        #     iteration = self.iteration_handle.fetch("iteration")
+        #     print(f"iteration: {iteration}")
+        #     time.sleep(0.1)
+        
+        counts = self.counts_handle.fetch("counts")
+        
+        print(f'counts: {counts}')
+        print(f'counts_old: {self.counts_old}')
+        
+        while np.all(counts == self.counts_old) and self.app.scanning:
             time.sleep(0.1)
-            print(f'waiting for results, c:{c}, pixel:{f_idx+2}')
-            c = self.counts_handle.count_so_far()
-        
-        counts = self.counts_handle.fetch_all()
+            print('waiting for updated counts')
+            counts = self.counts_handle.fetch("counts")
 
         #print(f'conts {counts}')
-        #print(f'c: {c}')
-        #iteration = self.n_handle.fetch_all()
+        #print(f'iteration: {iteration}')
+        
     
         #print(f'odmr x:{self.x_data}')
         
         self.x_data = (NV_LO_freq + self.f_vec) / u.MHz # x axis [frequencies]
         #self.x_data = (NV_LO_freq + self.f_vec*u.MHz) / u.GHz
         #self.y_data = self.generate_fake_data( self.x_data, self.fit_type) 
-        self.y_data = (counts[-1][0] / 1000 / (self.readout_len * 1e-9)) # counts( [frequencies])
+        self.y_data = (counts / 1000 / (self.readout_len * 1e-9)) # counts( [frequencies])
         #print(f"y_data: {self.y_data}")
         # print(f"fitted_y: {self.fitted_y_data}")
         
         
         fit_functions = {
-            "Single Lorentzian": (self.lorentzian, [self.x_data[np.argmin(self.y_data)], np.max(self.y_data), 10, np.max(self.y_data)]),
-            "Double Lorentzian": (self.double_lorentzian, [self.x_data[np.argmax(self.y_data)] , np.max(self.y_data), 10,
-                                                            self.x_data[np.argmax(self.y_data)] + 0.01, np.max(self.y_data) / 2, 10]),
-            "Triple Lorentzian": (self.triple_lorentzian, [self.x_data[np.argmax(self.y_data)], np.max(self.y_data), 10,
-                                                            self.x_data[np.argmax(self.y_data)]  + 0.01, np.max(self.y_data) / 2, 10,
-                                                            self.x_data[np.argmax(self.y_data)] - 0.01, np.max(self.y_data) / 3, 10])
+            "Single Lorentzian": (
+                self.lorentzian,
+                [self.x_data[np.argmin(self.y_data)],  # Initial guess for center frequency (dip) (MHz)
+                 np.max(self.y_data),                 # Initial amplitude (guess)
+                 10,                                  # Initial FWHM guess (MHz)
+                 np.max(self.y_data)]                 # Background level
+            ),
+            "Double Lorentzian": (
+                self.double_lorentzian,
+                [self.x_data[np.argmin(self.y_data)],  # First dip frequency 
+                 np.max(self.y_data),                 # First dip amplitude
+                 10,                                  # First dip FWHM
+                 self.x_data[np.argmin(self.y_data)] +50 ,  # Second dip frequency (slightly shifted)
+                 np.max(self.y_data) / 2,             # Second dip amplitude
+                 10,                                  # Second dip FWHM
+                 np.max(self.y_data)]                 # Background level
+            ),
+            "Triple Lorentzian": (
+                self.triple_lorentzian,
+                [self.x_data[np.argmin(self.y_data)],  # First dip frequency
+                 np.max(self.y_data),                 # First dip amplitude
+                 10,                                  # First dip FWHM
+                 self.x_data[np.argmin(self.y_data)] +50,  # Second dip frequency
+                 np.max(self.y_data) / 2,             # Second dip amplitude
+                 10,                                  # Second dip FWHM
+                 self.x_data[np.argmin(self.y_data)] +100,  # Third dip frequency
+                 np.max(self.y_data) / 3,             # Third dip amplitude
+                 10,                                  # Third dip FWHM
+                 np.max(self.y_data)]                 # Background level
+            )
         }
-
-        # Define fitting functions and initial parameters
-        fit_function, p0 = fit_functions[self.fit_type]
+        print(self.x_data[np.argmin(self.y_data)])
+        # Select the appropriate fitting function and initial guess parameters
+        fit_function, p0 = fit_functions[self.fit_type] #p0 being initial parameters and bg
         # try:
         popt, _ = curve_fit(fit_function, self.x_data, self.y_data, p0=p0, maxfev=10000)
         # except RuntimeError as e:
@@ -337,33 +372,77 @@ class ODMRModule:
             'fitted_y_data': self.fitted_y_data
         })
         #print(f'data dict: {self.data_dict}')
-
-        # if self.iteration_sum >= self.N_average:
-        #     self.finish_getting_data()  # Trigger state transition when the iteration limit is reached
-
-       
+        
+        self.counts_old = counts
         print("done!")
      
    
 
 
+    # @staticmethod
+    # def generate_fake_data(x_data, fit_type, noise_level=0.05, gamma_broad=1000, bg=10):
+    #     if fit_type == "Single Lorentzian":
+    #         y_data = ODMRModule.lorentzian(x_data, x_data[len(x_data) // 2], 10, gamma_broad, bg)
+    #     elif fit_type == "Double Lorentzian":
+    #         y_data = ODMRModule.double_lorentzian(x_data, x_data[len(x_data) // 3], 1, gamma_broad,
+    #                                               x_data[2 * len(x_data) // 3], 0.5, gamma_broad)
+    #     elif fit_type == "Triple Lorentzian":
+    #         y_data = ODMRModule.triple_lorentzian(x_data, x_data[len(x_data) // 4], 1, gamma_broad,
+    #                                               x_data[2 * len(x_data) // 4], 0.5, gamma_broad,
+    #                                               x_data[3 * len(x_data) // 4], 0.3, gamma_broad)
+    #     else:
+    #         raise ValueError(f"Unsupported fit type: {fit_type}")
+    
+    #     noise = np.random.normal(0, noise_level, len(x_data))
+    #     y_data += noise
+    #     return y_data
     @staticmethod
-    def generate_fake_data(x_data, fit_type, noise_level=0.05, gamma_broad=1000, bg=10):
+    def generate_fake_data(x_data, fit_type, noise_level=0.05, gamma_broad=10, bg=10):
+        """
+        Generates fake ODMR data with sharper Lorentzian dips.
+        
+        Parameters:
+        - x_data: Array of frequency values.
+        - fit_type: Type of Lorentzian function ("Single Lorentzian", "Double Lorentzian", "Triple Lorentzian").
+        - noise_level: Standard deviation of noise.
+        - gamma_broad: FWHM (Lower = Sharper dips).
+        - bg: Background level.
+        
+        Returns:
+        - y_data: Simulated ODMR signal with dips.
+        """
         if fit_type == "Single Lorentzian":
             y_data = ODMRModule.lorentzian(x_data, x_data[len(x_data) // 2], 10, gamma_broad, bg)
+    
         elif fit_type == "Double Lorentzian":
-            y_data = ODMRModule.double_lorentzian(x_data, x_data[len(x_data) // 3], 1, gamma_broad,
-                                                  x_data[2 * len(x_data) // 3], 0.5, gamma_broad)
+            y_data = ODMRModule.double_lorentzian(
+                x_data, 
+                x_data[len(x_data) // 3], 10, gamma_broad, 
+                x_data[2 * len(x_data) // 3], 5, gamma_broad, bg
+            )
+    
         elif fit_type == "Triple Lorentzian":
-            y_data = ODMRModule.triple_lorentzian(x_data, x_data[len(x_data) // 4], 1, gamma_broad,
-                                                  x_data[2 * len(x_data) // 4], 0.5, gamma_broad,
-                                                  x_data[3 * len(x_data) // 4], 0.3, gamma_broad)
+            y_data = ODMRModule.triple_lorentzian(
+                x_data, 
+                x_data[len(x_data) // 4], 10, gamma_broad, 
+                x_data[2 * len(x_data) // 4], 5, gamma_broad, 
+                x_data[3 * len(x_data) // 4], 3, gamma_broad, bg
+            )
+    
         else:
             raise ValueError(f"Unsupported fit type: {fit_type}")
     
-        noise = np.random.normal(0, noise_level, len(x_data))
+        # Add noise with lower amplitude to preserve dip sharpness
+        noise = np.random.normal(0, noise_level, len(x_data))  # * np.abs(y_data).max()
         y_data += noise
+    
         return y_data
+    
+ 
+
+    
+    
+
 
 
 
@@ -371,19 +450,62 @@ class ODMRModule:
 
     @staticmethod
     def lorentzian(x, x0, a, gamma, bg):
+        
+        """
+        Single Lorentzian function.
+        Parameters:
+        x  : array-like, The frequency values.
+        x0 : float, The center frequency of the dip.
+        a  : float, The amplitude (depth) of the dip.
+        gamma : float, The full-width at half maximum (FWHM).
+        bg : float, Background offset.
+        Returns:
+        y : array-like, The computed Lorentzian function values.
+        """
         return -abs(a) * (gamma ** 2 / ((x - x0) ** 2 + gamma ** 2)) + bg
 
     @staticmethod
-    def double_lorentzian(x, x0, a1, gamma1, x1, a2, gamma2):
-        bg = 10
-        return ODMRModule.lorentzian(x, x0, a1, gamma1, bg) + ODMRModule.lorentzian(x, x1, a2, gamma2, bg)
+    def double_lorentzian(x, x0, a1, gamma1, x1, a2, gamma2, bg):
+        """
+        Double Lorentzian function (sum of two dips).
+        Parameters:
+        x  : array-like, The frequency values.
+        x0 : float, The center frequency of the first dip.
+        a1 : float, The amplitude (depth) of the first dip.
+        gamma1 : float, The FWHM of the first dip.
+        x1 : float, The center frequency of the second dip.
+        a2 : float, The amplitude (depth) of the second dip.
+        gamma2 : float, The FWHM of the second dip.
+        bg : float, Background offset.
+        Returns:
+        y : array-like, The computed function values for two Lorentzians.
+        """
+        # bg = 10
+        return (ODMRModule.lorentzian(x, x0, a1, gamma1, 0) + ODMRModule.lorentzian(x, x1, a2, gamma2, 0) + bg)
 
     @staticmethod
-    def triple_lorentzian(x, x0, a1, gamma1, x1, a2, gamma2, x2, a3, gamma3):
-        bg = 10
-        return (ODMRModule.lorentzian(x, x0, a1, gamma1, bg) +
-                ODMRModule.lorentzian(x, x1, a2, gamma2, bg) +
-                ODMRModule.lorentzian(x, x2, a3, gamma3, bg))
+    def triple_lorentzian(x, x0, a1, gamma1, x1, a2, gamma2, x2, a3, gamma3, bg):
+        """
+        Triple Lorentzian function (sum of three dips).
+        Parameters:
+        x  : array-like, The frequency values.
+        x0 : float, The center frequency of the first dip.
+        a1 : float, The amplitude (depth) of the first dip.
+        gamma1 : float, The FWHM of the first dip.
+        x1 : float, The center frequency of the second dip.
+        a2 : float, The amplitude (depth) of the second dip.
+        gamma2 : float, The FWHM of the second dip.
+        x2 : float, The center frequency of the third dip.
+        a3 : float, The amplitude (depth) of the third dip.
+        gamma3 : float, The FWHM of the third dip.
+        bg : float, Background offset.
+        Returns:
+        y : array-like, The computed function values for three Lorentzians.
+        """
+        # bg = 10
+        return (ODMRModule.lorentzian(x, x0, a1, gamma1, 0) +
+                ODMRModule.lorentzian(x, x1, a2, gamma2, 0) +
+                ODMRModule.lorentzian(x, x2, a3, gamma3, 0) + bg)
 
     def cleanup(self):
         

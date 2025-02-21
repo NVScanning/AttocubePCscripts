@@ -1,3 +1,4 @@
+import numpy as np
 import matplotlib.pyplot as plt
 
 def read_and_plot_data(file_path):
@@ -29,10 +30,13 @@ def read_and_plot_data(file_path):
             continue
         
         # Read the position and the line number
-        x, y, z, line_number = line.strip().split('\t')
-        x_positions.append(float(x))
-        y_positions.append(float(y))
-        line_numbers.append(line_number)  # Store the line number
+        try:
+            x, y, z, line_number = line.strip().split('\t')
+            x_positions.append(float(x))
+            y_positions.append(float(y))
+            line_numbers.append(line_number)  # Store the line number
+        except ValueError:
+            continue  # Skip any malformed lines
     
     # Define a set of known colors
     known_colors = ['red', 'blue', 'green', 'orange', 'purple', 'brown', 'pink', 'cyan', 'lime', 'black']
@@ -55,8 +59,8 @@ def read_and_plot_data(file_path):
         # Add the actual data points as a scatter plot
         plt.scatter(x_scanning, y_scanning, color=color, edgecolor='black', s=30, zorder=3, label=f'Points {current_line}')
     
-    plt.xlabel("X Position (µm)")
-    plt.ylabel("Y Position (µm)")
+    plt.xlabel("X Position (nm)")
+    plt.ylabel("Y Position (nm)")
     plt.title("Scanning Movements")
     plt.legend()
     plt.grid(True)
@@ -69,15 +73,8 @@ def read_and_plot_data(file_path):
     plt.tight_layout()
     plt.show()
 
-
 # Specify the path to the output file
-file_path = "noise_data.txt"
+file_path = "movement_data_with_noise.txt"  # Replace with your actual file path
 
 # Call the function to read and plot data
 read_and_plot_data(file_path)
-
-
-
-
-
-

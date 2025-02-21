@@ -23,7 +23,7 @@ single_integration_time_cycles = single_integration_time_ns // 4
 # Number of chunks to get the total measurement time
 n_count = int(total_integration_time / single_integration_time_ns)
 
-freq = 0
+freq = 50
 f = freq*u.MHz
 
 with program() as counter:
@@ -42,7 +42,7 @@ with program() as counter:
         with for_(n, 0, n < n_count, n + 1):
             align()
             # Play the mw pulse...
-            #play("cw" * amp(1), "NV", duration=single_integration_time_cycles)
+            play("cw" * amp(1), "NV", duration=single_integration_time_cycles)
             # Play the laser pulse...
             play("laser_ON", "AOM1", duration=single_integration_time_cycles)
             wait(1_000 * u.ns, "SPCM1")  # so readout don't catch the first part of spin reinitialization

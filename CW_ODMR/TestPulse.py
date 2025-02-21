@@ -11,6 +11,7 @@ from qm import SimulationConfig
 import matplotlib.pyplot as plt
 from configuration_with_octave_Last import *
 import numpy as np
+import time
 
 
 ###################
@@ -20,7 +21,7 @@ import numpy as np
 readout_len = long_meas_len_1  # Readout duration for this experiment
 
 with program() as cw_odmr:
-    update_frequency("NV", 20*u.MHz)
+    update_frequency("NV", 50*u.MHz)
     
     with infinite_loop_():
         play('cw'*amp(1), 'NV',duration=readout_len * u.ns)
@@ -40,4 +41,7 @@ qm = qmm.open_qm(config)
 # Send the QUA program to the OPX, which compiles and executes it
 job = qm.execute(cw_odmr)
 
-#qm.octave.set_rf_output_mode("NV", RFOutputMode.off)
+time.sleep(5)  # The program will run for 30 seconds
+job.halt()
+
+qm.octave.set_rf_output_mode("NV", RFOutputMode.off)
