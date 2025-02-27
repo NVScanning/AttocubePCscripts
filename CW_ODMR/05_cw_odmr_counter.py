@@ -34,7 +34,7 @@ f_vec = np.arange(-50 * u.MHz, 50 * u.MHz, 0.2 * u.MHz)
 #f_vec = np.array([0*u.MHz])
 n_avg = 100000  # number of averages
 readout_len = long_meas_len_1  # Readout duration for this experiment
-mw_amp = 0.1
+mw_amp = 0.5
 
 with program() as cw_odmr:
     times = declare(int, size=100)  # QUA vector for storing the time-tags
@@ -152,7 +152,7 @@ else:
     
     qm.octave.set_rf_output_mode("NV", RFOutputMode.off)
 
-    directory = f"//WXPC724/Share/Data/ODMRnearSample/20250220"
+    directory = f"//WXPC724/Share/Data/ODMRnearSample/20250225"
     # Create the full path for saving the data, adding a .txt extension
     full_path = os.path.join(directory, f"{time_module.strftime('%Y%m%d-%H%M-%S')}_InContact_AboveSample2_mw_amp_0{mw_amp*10}")  
     #Ensure the directory exists

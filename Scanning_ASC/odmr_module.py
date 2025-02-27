@@ -157,18 +157,18 @@ class ODMRModule:
 
                         save(counts, counts_st)  # save counts on stream
 
-                        #assign(counts1, counts+counts1)
-                        # Wait and align all elements before measuring the dark events
-                        wait(wait_between_runs * u.ns)
-                        align()  # align all elements
-                        # Play the mw pulse with zero amplitude...
-                        play("cw" * amp(0), "NV", duration=self.readout_len * u.ns)
-                        # ... and the laser pulse simultaneously (the laser pulse is delayed by 'laser_delay_1')
-                        play("laser_ON", "AOM1", duration=self.readout_len * u.ns)
-                        wait(1_000 * u.ns, "SPCM1")  # so readout don't catch the first part of spin reinitialization
-                        measure("long_readout", "SPCM1", None, time_tagging.analog(times, self.readout_len, counts))
+                        # #assign(counts1, counts+counts1)
+                        # # Wait and align all elements before measuring the dark events
+                        # wait(wait_between_runs * u.ns)
+                        # align()  # align all elements
+                        # # Play the mw pulse with zero amplitude...
+                        # play("cw" * amp(0), "NV", duration=self.readout_len * u.ns)
+                        # # ... and the laser pulse simultaneously (the laser pulse is delayed by 'laser_delay_1')
+                        # play("laser_ON", "AOM1", duration=self.readout_len * u.ns)
+                        # wait(1_000 * u.ns, "SPCM1")  # so readout don't catch the first part of spin reinitialization
+                        # measure("long_readout", "SPCM1", None, time_tagging.analog(times, self.readout_len, counts))
 
-                        save(counts, counts_dark_st)  # save counts on stream
+                        # save(counts, counts_dark_st)  # save counts on stream
                         save(m, n_st)  # save number of iteration inside for_loop
 
                         wait(wait_between_runs * u.ns)

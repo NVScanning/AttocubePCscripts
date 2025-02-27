@@ -439,7 +439,7 @@ class ScannerApp(tk.Tk):
             # Open the ODMR Fit Popup
         ODMRFitPopup(self)
         
-    def update_displayed_heatmap(self):
+    def update_displayed_heatmap(self, selection='PL'):
         """
         Updates the heatmap data for all key elements with the logic to distinguish PL and ODMR module.
 
@@ -459,7 +459,12 @@ class ScannerApp(tk.Tk):
         
         if self.heatmap_data_dict[selected_value_key] is not None:
             self.im.set_data(self.heatmap_data_dict[selected_value_key])
-            self.im.set_clim(np.nanmin(self.heatmap_data_dict[selected_value_key]), np.nanmax(self.heatmap_data_dict[selected_value_key]))
+            
+            if selection == 'ODMR' and selected_value_key == 'freq_center':
+                self.im.set_clim(np.min(self.odmr_frequencies), np.max(self.odmr_frequencies))
+            
+            else:
+                self.im.set_clim(np.nanmin(self.heatmap_data_dict[selected_value_key]), np.nanmax(self.heatmap_data_dict[selected_value_key]))
             self.canvas.draw_idle()
 
     def popup_heatmap(self):
@@ -1592,8 +1597,17 @@ class ScannerApp(tk.Tk):
             self.headerlines = [f"#Scantype: Stepscan \n#Date: {time.strftime('%Y-%m-%d %H:%M:%S')}", 
                                 f"\n#Total scanning time: {scantime}", f"\n#Scan direction: {self.fast_axis.get()}", 
                                f"\n#X range: {self.x_array[0]} - {self.x_array[-1]} um", f"\n#Y range: {self.y_array[0]} - {self.y_array[-1]} um", 
-                               f"\n#X pixels: {steps[0]}, pixelsize: {stepsize[0]} um", f"\n#Y pixels: {steps[1]}, pixelsize: {stepsize[1]} um",
+                               f"\n#X pixels: {steps[0]}, pixelsize: {stepsize[0]} m", f"\n#Y pixels: {steps[1]}, pixelsize: {stepsize[1]} m",
                                f"\n#Integration time per pixel: {module.total_integration_time/1E6} ms", "\n#Columns:"]
+            
+            if selection == 'ODMR':
+                ODMRheader = ["\n#ODMR Parameters",
+                              f"\n#Frequency range: {np.min(self.odmr_frequencies)} - {np.max(self.odmr_frequencies)} GHz",
+                              f"\n#Number of frequency points: {np.size(self.odmr_frequencies)}", 
+                              f"\n#Number of averages: {module.N_average}"]
+                print(ODMRheader)
+
+                self.headerlines.extend(ODMRheader)
             
             # If auto-save is off update the heatmap data 
             if not self.save_flag.get():
