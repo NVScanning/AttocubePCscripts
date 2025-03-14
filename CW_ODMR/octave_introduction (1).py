@@ -36,7 +36,7 @@ octave = "octave1"
 # The elements used to test the ports of the Octave
 elements = ["qe1"]
 IF = 50e6  # The IF frequency
-LO = 2.8735e9  # The LO frequency
+LO = 2.87e9  # The LO frequency
 
 # The configuration used here
 config = {
@@ -81,8 +81,8 @@ config = {
             "digitalInputs": {
                 "switch": {
                     "port": (con, 1),
-                    "delay": 136,
-                    "buffer": 0,
+                    "delay": 57,
+                    "buffer": 18,
                 },
             },
             "time_of_flight": 24,
@@ -162,7 +162,7 @@ config = {
                 1: {
                     "LO_frequency": LO,
                     "LO_source": "internal",  # can be external or internal. internal is the default
-                    "output_mode": "always_on",  # can be: "always_on" / "always_off"/ "triggered" / "triggered_reversed". "always_off" is the default
+                    "output_mode": "triggered",  # can be: "always_on" / "always_off"/ "triggered" / "triggered_reversed". "always_off" is the default
                     "gain": -10,  # can be in the range [-20 : 0.5 : 20]dB
                 },
                 2: {
@@ -417,5 +417,5 @@ if calibration:
     # Step 5.3: Run these and look at the spectrum analyzer and check if you get 1 peak at LO+IF (i.e. 6.05GHz)
     print("-" * 37 + " Play after calibration")
     job = qm.execute(hello_octave)
-    time.sleep(30)  # The program will run for 30 seconds
+    time.sleep(10)  # The program will run for 30 seconds
     job.halt()

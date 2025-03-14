@@ -43,17 +43,17 @@ with program() as time_rabi:
     play("laser_ON", "AOM1")
     wait(wait_for_initialization * u.ns, "AOM1")
     
-    update_frequency("NV", -18*u.MHz)
+    update_frequency("NV", 0*u.MHz)
 
     # Time Rabi sweep
     with for_(n, 0, n < n_avg, n + 1):
         with for_(*from_array(t, t_vec)):
             # Play the Rabi pulse with varying durations
-            play("x180" * amp(1), "NV", duration=t)
+            play("x180" * amp(0.1), "NV", duration=t)
             align()  # Play the laser pulse after the mw pulse
             play("laser_ON", "AOM1")
             # Measure and detect the photons on SPCM1
-            measure("readout", "SPCM1", None, time_tagging.analog(times, meas_len_1, counts))
+            measure("readout", "SPCM1", None, time_tagging.analog(times, long_meas_len_1, counts))
             save(counts, counts_st)  # save counts
 
             # Wait and align all elements before measuring the dark events
@@ -65,7 +65,7 @@ with program() as time_rabi:
             align()  # Play the laser pulse after the mw pulse
             play("laser_ON", "AOM1")
             # Measure and detect the dark counts on SPCM1
-            measure("readout", "SPCM1", None, time_tagging.analog(times, meas_len_1, counts))
+            measure("readout", "SPCM1", None, time_tagging.analog(times, long_meas_len_1, counts))
             save(counts, counts_dark_st)  # save dark counts
             wait(wait_after_measure)
 

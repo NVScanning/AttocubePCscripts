@@ -45,7 +45,7 @@ octave_config = octave_declaration(octaves)
 #############
 # Frequencies
 NV_IF_freq = 50 * u.MHz
-NV_LO_freq = 2.8735 * u.GHz
+NV_LO_freq = 2.87 * u.GHz
 
 # Pulses lengths
 initialization_len_1 = 3000 * u.ns
@@ -88,8 +88,8 @@ laser_delay_2 = 0 * u.ns
 mw_delay = 0 * u.ns
 rf_delay = 0 * u.ns
 
-trigger_delay = 87  # 57ns with QOP222 and above otherwise 87ns
-trigger_buffer = 15  # 18ns with QOP222 and above otherwise 15ns
+trigger_delay = 57  # 57ns with QOP222 and above otherwise 87ns
+trigger_buffer = 18  # 18ns with QOP222 and above otherwise 15ns
 
 wait_after_measure = 1 * u.us  # Wait time after each measurement
 wait_between_runs = 100
@@ -224,7 +224,7 @@ config = {
                 1: {
                     "LO_frequency": NV_LO_freq,
                     "LO_source": "internal",  # can be external or internal. internal is the default
-                    "output_mode": "always_on",  # can be: "always_on" / "always_off"/ "triggered" / "triggered_reversed". "always_off" is the default
+                    "output_mode": "triggered",  # can be: "always_on" / "always_off"/ "triggered" / "triggered_reversed". "always_off" is the default
                     "gain": -10,  # can be in the range [-20 : 0.5 : 20]dB
                 },
             },
@@ -236,6 +236,7 @@ config = {
             "operation": "control",
             "length": mw_len_NV,
             "waveforms": {"I": "cw_wf", "Q": "zero_wf"},
+            "digital_marker": "ON",
         },
         "x180_pulse": {
             "operation": "control",

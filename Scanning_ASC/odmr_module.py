@@ -150,7 +150,7 @@ class ODMRModule:
                         # Play the mw pulse...
                         play("cw" * amp(0.1), "NV", duration=self.readout_len * u.ns)
                         # ... and the laser pulse simultaneously (the laser pulse is delayed by 'laser_delay_1')
-                        play("laser_ON", "AOM1", duration=self.readout_len * u.ns)
+                        #play("laser_ON", "AOM1", duration=self.readout_len * u.ns)
                         wait(1_000 * u.ns, "SPCM1")  # so readout don't catch the first part of spin reinitialization
                         # Measure and detect the photons on SPCM1
                         measure("long_readout", "SPCM1", None, time_tagging.analog(times, self.readout_len, counts))
@@ -209,7 +209,7 @@ class ODMRModule:
         if self.job:
             self.job.halt()
         
-        self.qm.octave.set_rf_output_mode("NV", RFOutputMode.off)
+        #self.qm.octave.set_rf_output_mode("NV", RFOutputMode.off)
         print("Job stopped.")
         
 

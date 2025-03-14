@@ -93,7 +93,9 @@ class PLModule:
 
     def on_stop_job(self):
         if self.job:
+            
             self.job.halt()  # Assuming this is the method to stop the job
+
         print("Job stopped.")
 
     def on_disconnect(self):

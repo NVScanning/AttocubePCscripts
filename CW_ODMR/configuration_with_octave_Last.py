@@ -47,10 +47,10 @@ octave_config = octave_declaration(octaves)
 #############
 # Frequencies
 NV_IF_freq = 50 * u.MHz
-NV_LO_freq = 2.8735 * u.GHz
+NV_LO_freq = 2.87 * u.GHz
 
 # Pulses lengths
-initialization_len_1 = 3000 * u.ns
+initialization_len_1 = 2_000 * u.ns
 meas_len_1 = 500 * u.ns
 long_meas_len_1 = 5_000 * u.ns
 
@@ -83,15 +83,15 @@ signal_threshold_1 = -5_00  # ADC untis, to convert to volts divide by 4096 (12 
 signal_threshold_2 = -2_000  # ADC untis, to convert to volts divide by 4096 (12 bit ADC)
 
 # Delays
-detection_delay_1 = 80 * u.ns
+detection_delay_1 = 424 * u.ns
 detection_delay_2 = 80 * u.ns
 laser_delay_1 = 0 * u.ns
 laser_delay_2 = 0 * u.ns
-mw_delay = 0 * u.ns
+mw_delay = 100 * u.ns
 rf_delay = 0 * u.ns
 
-trigger_delay = 87  # 57ns with QOP222 and above otherwise 87ns
-trigger_buffer = 15  # 18ns with QOP222 and above otherwise 15ns
+trigger_delay = 57  # 57ns with QOP222 and above otherwise 87ns
+trigger_buffer = 18  # 18ns with QOP222 and above otherwise 15ns
 
 wait_after_measure = 1 * u.us  # Wait time after each measurement
 wait_between_runs = 100
@@ -226,7 +226,7 @@ config = {
                 1: {
                     "LO_frequency": NV_LO_freq,
                     "LO_source": "internal",  # can be external or internal. internal is the default
-                    "output_mode": "always_on",  # can be: "always_on" / "always_off"/ "triggered" / "triggered_reversed". "always_off" is the default
+                    "output_mode": "triggered",  # can be: "always_on" / "always_off"/ "triggered" / "triggered_reversed". "always_off" is the default
                     "gain": -10,  # can be in the range [-20 : 0.5 : 20]dB
                 },
             },
@@ -238,41 +238,49 @@ config = {
             "operation": "control",
             "length": mw_len_NV,
             "waveforms": {"I": "cw_wf", "Q": "zero_wf"},
+            "digital_marker": "ON"
         },
         "x180_pulse": {
             "operation": "control",
             "length": x180_len_NV,
             "waveforms": {"I": "x180_wf", "Q": "zero_wf"},
+            "digital_marker": "ON"
         },
         "x90_pulse": {
             "operation": "control",
             "length": x90_len_NV,
             "waveforms": {"I": "x90_wf", "Q": "zero_wf"},
+            "digital_marker": "ON"
         },
         "-x90_pulse": {
             "operation": "control",
             "length": x90_len_NV,
             "waveforms": {"I": "minus_x90_wf", "Q": "zero_wf"},
+            "digital_marker": "ON"
         },
         "-y90_pulse": {
             "operation": "control",
             "length": x90_len_NV,
             "waveforms": {"I": "zero_wf", "Q": "minus_x90_wf"},
+            "digital_marker": "ON"
         },
         "y90_pulse": {
             "operation": "control",
             "length": x90_len_NV,
             "waveforms": {"I": "zero_wf", "Q": "x90_wf"},
+            "digital_marker": "ON"
         },
         "y180_pulse": {
             "operation": "control",
             "length": x180_len_NV,
             "waveforms": {"I": "zero_wf", "Q": "x180_wf"},
+            "digital_marker": "ON"
         },
         "const_pulse_single": {
             "operation": "control",
             "length": rf_length,  # in ns
             "waveforms": {"single": "rf_const_wf"},
+            "digital_marker": "ON"
         },
         "laser_ON_1": {
             "operation": "control",

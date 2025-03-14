@@ -30,7 +30,7 @@ import time as time_module
 ###################
 
 # Frequency vector
-f_vec = np.arange(-50 * u.MHz, 50 * u.MHz, 0.2 * u.MHz)
+f_vec = np.arange(-50 * u.MHz, 50 * u.MHz, 0.5 * u.MHz)
 #f_vec = np.array([0*u.MHz])
 n_avg = 100000  # number of averages
 readout_len = long_meas_len_1  # Readout duration for this experiment
@@ -162,4 +162,4 @@ else:
     counts = counts / 1000 / (readout_len * 1e-9)
     counts_dark = counts_dark / 1000 / (readout_len * 1e-9)
     
-    np.savez(full_path, frequencies=frequencies, counts=counts, counts_dark=counts_dark, counts2=counts2, time=time, mw_amp=mw_amp)
+    #np.savez(full_path, frequencies=frequencies, counts=counts, counts_dark=counts_dark, counts2=counts2, time=time, mw_amp=mw_amp)
