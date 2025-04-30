@@ -30,9 +30,10 @@ import time as time_module
 ###################
 
 # Frequency vector
-f_vec = np.arange(-50 * u.MHz, 50 * u.MHz, 0.5 * u.MHz)
+#f_vec = np.arange(-50 * u.MHz, 50 * u.MHz, 0.5 * u.MHz)
+f_vec = np.arange(20 * u.MHz, 120 * u.MHz, 0.5 * u.MHz)
 #f_vec = np.array([0*u.MHz])
-n_avg = 100000  # number of averages
+n_avg = 1000000  # number of averages
 readout_len = long_meas_len_1  # Readout duration for this experiment
 mw_amp = 0.5
 

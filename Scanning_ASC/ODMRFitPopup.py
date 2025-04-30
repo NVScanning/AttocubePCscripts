@@ -115,6 +115,7 @@ class ODMRFitPopup(tk.Toplevel):
         self.canvas.draw_idle()  # Ensure initial draw
 
     def start_odmr(self):
+        a = time.time()
         params = {
             "fmin": float(self.fmin_entry.get()),
             "fmax": float(self.fmax_entry.get()),
@@ -137,7 +138,8 @@ class ODMRFitPopup(tk.Toplevel):
         threading.Thread(target=self.odmr_module.get_data(0), daemon=True).start()
         
 
-
+        b = time.time()
+        print(f's_odmr_time: {b-a}')
         
         #self.odmr_module.get_data_thread()  # Moved this line up
         #self.update_plot()  # Initialize the plot immediately
@@ -157,7 +159,7 @@ class ODMRFitPopup(tk.Toplevel):
         #y_data = self.odmr_module.fitted_y_data
         self.graph, = self.ax.plot([] ,  [], label="Data", marker='o')
         self.fit_graph, = self.ax.plot([] ,  [], label="Fit", color='red')
-        self.ax.set_xlabel("Frequency (GHz)")
+        self.ax.set_xlabel("Frequency (MHz)")
         self.ax.set_ylabel("Counts/s")
         # if len(self.x_data) > 1:
         #     self.ax.set_xlim(min(self.x_data), max(self.x_data))
@@ -171,6 +173,7 @@ class ODMRFitPopup(tk.Toplevel):
         threading.Thread(target=self.update_plot, daemon=True).start()
         #self.schedule_update()
         print("after thread")
+       
         
        
 

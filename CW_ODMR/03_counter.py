@@ -29,6 +29,7 @@ with program() as counter:
     total_counts = declare(int)  # variable for the total number of counts
     n = declare(int)  # number of iterations
     counts_st = declare_stream()  # stream for counts
+    
 
     # Infinite loop to allow the user to work on the experimental set-up while looking at the counts
     with infinite_loop_():

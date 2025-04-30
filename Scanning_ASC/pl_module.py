@@ -62,6 +62,8 @@ class PLModule:
                 
                 with for_(n, 0, n < n_iterations, n + 1):
                     
+                    play("laser_ON", "AOM1", duration=self.single_integration_time_ns)
+                    
                     measure("readout", "SPCM1", None, time_tagging.analog(times, self.single_integration_time_ns, counts))
                     # Add the counts
                     assign(total_counts, total_counts + counts)

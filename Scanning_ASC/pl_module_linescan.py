@@ -34,7 +34,8 @@ class PLModuleLinescan:
         self.z_control = None
         self.scannerpos = None
         self.z_out_list = []
-        self.pos_list = []
+        self.x_list = []
+        self.y_list = []
 
 
         # Add transitions
@@ -114,21 +115,28 @@ class PLModuleLinescan:
                 # Wait until the program reaches the 'pause' statement again, indicating that the QUA program is done
                 
             sleep_time = 0.0005
+            
+            z_out = []
+            x_out = []
+            y_out = []
 
             while not self.job.is_paused() and self.job.status == 'running':
                 #print('job running (get_data)')
-                z_out = self.z_control.getPositionZ()
-                self.z_out_list.append(z_out)
-                pos_out = self.scannerpos.getPositionsXYRel()
-                self.pos_list.append(pos_out)
+                z_out.append(self.z_control.getPositionZ())
+                x_out.append(self.scannerpos.getPositionsXYRel()[0])
+                y_out.append(self.scannerpos.getPositionsXYRel()[1])
                 self.job_done = False
                 time.sleep(sleep_time)
                 
+            self.z_out_list.append(z_out)
+            self.x_list.append(x_out)
+            self.y_list.append(y_out)
+            
             print(f'job paused: {self.job.is_paused()}, job status: {self.job.status}')
             self.job_done = True
             print('job finished running')
-            print(z_out_list)
-            print(pos_list)
+            #print(z_out_list)
+            #print(pos_list)
             
         
         except:

@@ -91,23 +91,13 @@ class ODMRModule:
         
         # Frequency vector
         self.f_vec = np.arange(fmin, fmax, (fmax  - fmin ) / N_points)
-        
-        print(f'f_vec:{self.f_vec}')
         self.counts_sum = np.zeros(np.shape(self.f_vec))
         self.fitted_y_data= np.zeros(np.shape(self.f_vec))
         self.y_data=np.zeros(np.shape(self.f_vec))
-        #self.x_data= np.zeros(np.shape(self.f_vec))
-        self.x_data = (NV_LO_freq + self.f_vec*u.MHz) / u.GHz
+        self.x_data= np.zeros(np.shape(self.f_vec))
+        self.x_data = (NV_LO_freq + self.f_vec) / u.GHz
         
-        #counts_st = []
-        print(f'readout_1: {int(self.readout_len//4)} ')
-        print(f'readout_2: {int(self.readout_len * u.ns)} ')
         
-        # f_min_external = 3e9 - fmin
-        # f_max_external = 4e9 - fmax
-        # df_external = fmax - fmin
-        # freqs_external = np.arange(f_min_external, f_max_external + 0.1, df_external)
-        # frequency = np.array(np.concatenate([self.f_vec + freqs_external[i] for i in range(len(freqs_external))]))
             
         with program() as cw_odmr:
                             
@@ -148,7 +138,8 @@ class ODMRModule:
                         # align all elements before starting the sequence
                         align()
                         # Play the mw pulse...
-                        play("cw" * amp(0.1), "NV", duration=self.readout_len * u.ns)
+                        play("laser_ON", "AOM1", duration=self.readout_len * u.ns)
+                        play("cw" * amp(0.5), "NV", duration=self.readout_len * u.ns)
                         # ... and the laser pulse simultaneously (the laser pulse is delayed by 'laser_delay_1')
                         #play("laser_ON", "AOM1", duration=self.readout_len * u.ns)
                         wait(1_000 * u.ns, "SPCM1")  # so readout don't catch the first part of spin reinitialization
@@ -157,7 +148,7 @@ class ODMRModule:
 
                         save(counts, counts_st)  # save counts on stream
 
-                        # #assign(counts1, counts+counts1)
+                        # # #assign(counts1, counts+counts1)
                         # # Wait and align all elements before measuring the dark events
                         # wait(wait_between_runs * u.ns)
                         # align()  # align all elements
@@ -168,7 +159,7 @@ class ODMRModule:
                         # wait(1_000 * u.ns, "SPCM1")  # so readout don't catch the first part of spin reinitialization
                         # measure("long_readout", "SPCM1", None, time_tagging.analog(times, self.readout_len, counts))
 
-                        # save(counts, counts_dark_st)  # save counts on stream
+                        # # save(counts, counts_dark_st)  # save counts on stream
                         save(m, n_st)  # save number of iteration inside for_loop
 
                         wait(wait_between_runs * u.ns)
@@ -237,6 +228,89 @@ class ODMRModule:
             pass
         return True
     
+    @staticmethod
+    def get_minima_from_single(x_data, y_data, fit_type, center_freq=2875):
+        """
+        Estimate indices of Lorentzian dip centers based on signal minima.
+    
+        Parameters:
+        - x_data: array of frequency values.
+        - y_data: array of corresponding measured counts.
+        - fit_type: string, one of "Single Lorentzian", "Double Lorentzian", "Triple Lorentzian".
+        - center_freq: expected central frequency of the ODMR feature (in MHz).
+    
+        Returns:
+        - Sorted array of indices corresponding to estimated dip centers, used as fit initial guesses.
+        """
+        bg = np.max(y_data)
+        min_idx = np.argmin(y_data)  # Find first minimum
+        min_x = x_data[min_idx]
+        min_indices = [min_idx]
+    
+        if fit_type in ["Double Lorentzian", "Triple Lorentzian"]:
+            # Estimate second dip position symmetrically around center
+            est_x2 = 2 * center_freq - min_x
+            idx2 = np.argmin(np.abs(x_data - est_x2))
+            min_indices.append(idx2)
+            min_indices = sorted(min_indices, key=lambda i: x_data[i])
+    
+        if fit_type == "Triple Lorentzian":
+            # Estimate third dip near center_freq
+            est_x3 = center_freq
+            idx3 = np.argmin(np.abs(x_data - est_x3))
+            min_indices.append(idx3)
+    
+        return np.array(sorted(min_indices))
+    
+    
+    @staticmethod
+    def fit_lorentzian(x_data, y_data, fit_type, center_freq=2875):
+        """
+        Perform Lorentzian fitting (single, double, or triple) on ODMR data.
+    
+        Parameters:
+        - x_data: frequency array (MHz).
+        - y_data: corresponding PL counts (kc/s).
+        - fit_type: fit model ("Single Lorentzian", "Double Lorentzian", "Triple Lorentzian").
+        - center_freq: expected ODMR center (used for initial guess symmetry).
+    
+        Returns:
+        - popt: optimized fit parameters.
+        - fitted_y: fitted Lorentzian curve evaluated over x_data.
+        """
+        bg = np.max(y_data)
+        min_idx = ODMRModule.get_minima_from_single(x_data, y_data, fit_type, center_freq)
+    
+        # Estimate amplitudes (dip depths)
+        A1 = bg - y_data[min_idx[0]]
+        A2 = bg - y_data[min_idx[1]] if fit_type != "Single Lorentzian" else 0
+        A3 = bg - y_data[min_idx[2]] if fit_type == "Triple Lorentzian" else 0
+    
+        # Estimate initial FWHM
+        gamma_guess = 5 if fit_type == "Single Lorentzian" else np.mean(np.diff(x_data[min_idx])) / 2
+    
+        if fit_type == "Single Lorentzian":
+            p0 = [x_data[min_idx[0]], A1, gamma_guess, bg]
+            popt, _ = curve_fit(ODMRModule.lorentzian, x_data, y_data, p0=p0, maxfev=10000)
+            return popt, ODMRModule.lorentzian(x_data, *popt)
+    
+        elif fit_type == "Double Lorentzian":
+            p0 = [x_data[min_idx[0]], A1, gamma_guess,
+                  x_data[min_idx[1]], A2, gamma_guess,
+                  bg]
+            popt, _ = curve_fit(ODMRModule.double_lorentzian, x_data, y_data, p0=p0, maxfev=10000)
+            return popt, ODMRModule.double_lorentzian(x_data, *popt)
+    
+        elif fit_type == "Triple Lorentzian":
+            p0 = [x_data[min_idx[0]], A1, gamma_guess,
+                  x_data[min_idx[1]], A2, gamma_guess,
+                  x_data[min_idx[2]], A3, gamma_guess,
+                  bg]
+            popt, _ = curve_fit(ODMRModule.triple_lorentzian, x_data, y_data, p0=p0, maxfev=50000)
+            return popt, ODMRModule.triple_lorentzian(x_data, *popt)
+    
+        return None, None
+    
 
 
 
@@ -270,78 +344,27 @@ class ODMRModule:
         iteration = self.iteration_handle.fetch("iteration")
         print(f"iteration: {iteration}")
         
-        # while iteration < self.N_average - 1 and self.app.scanning:
-        #     iteration = self.iteration_handle.fetch("iteration")
-        #     print(f"iteration: {iteration}")
-        #     time.sleep(0.1)
+        while iteration < self.N_average - 1 and self.app.scanning:
+            iteration = self.iteration_handle.fetch("iteration")
+            print(f"iteration: {iteration}")
+            time.sleep(0.05)
         
         counts = self.counts_handle.fetch("counts")
-        
-        print(f'counts: {counts}')
-        print(f'counts_old: {self.counts_old}')
-        
-        while np.all(counts == self.counts_old) and self.app.scanning:
-            time.sleep(0.1)
-            print('waiting for updated counts')
-            counts = self.counts_handle.fetch("counts")
-
-        #print(f'conts {counts}')
-        #print(f'iteration: {iteration}')
+        print(f'iteration: {iteration}')
         
     
-        #print(f'odmr x:{self.x_data}')
+        print(f'odmr x:{self.x_data}')
         
         self.x_data = (NV_LO_freq + self.f_vec) / u.MHz # x axis [frequencies]
         #self.x_data = (NV_LO_freq + self.f_vec*u.MHz) / u.GHz
-        #self.y_data = self.generate_fake_data( self.x_data, self.fit_type) 
+        # self.y_data = self.generate_fake_data( self.x_data, self.fit_type) 
         self.y_data = (counts / 1000 / (self.readout_len * 1e-9)) # counts( [frequencies])
         #print(f"y_data: {self.y_data}")
         # print(f"fitted_y: {self.fitted_y_data}")
-        
-        
-        fit_functions = {
-            "Single Lorentzian": (
-                self.lorentzian,
-                [self.x_data[np.argmin(self.y_data)],  # Initial guess for center frequency (dip) (MHz)
-                 np.max(self.y_data),                 # Initial amplitude (guess)
-                 10,                                  # Initial FWHM guess (MHz)
-                 np.max(self.y_data)]                 # Background level
-            ),
-            "Double Lorentzian": (
-                self.double_lorentzian,
-                [self.x_data[np.argmin(self.y_data)],  # First dip frequency 
-                 np.max(self.y_data),                 # First dip amplitude
-                 10,                                  # First dip FWHM
-                 self.x_data[np.argmin(self.y_data)] +50 ,  # Second dip frequency (slightly shifted)
-                 np.max(self.y_data) / 2,             # Second dip amplitude
-                 10,                                  # Second dip FWHM
-                 np.max(self.y_data)]                 # Background level
-            ),
-            "Triple Lorentzian": (
-                self.triple_lorentzian,
-                [self.x_data[np.argmin(self.y_data)],  # First dip frequency
-                 np.max(self.y_data),                 # First dip amplitude
-                 10,                                  # First dip FWHM
-                 self.x_data[np.argmin(self.y_data)] +50,  # Second dip frequency
-                 np.max(self.y_data) / 2,             # Second dip amplitude
-                 10,                                  # Second dip FWHM
-                 self.x_data[np.argmin(self.y_data)] +100,  # Third dip frequency
-                 np.max(self.y_data) / 3,             # Third dip amplitude
-                 10,                                  # Third dip FWHM
-                 np.max(self.y_data)]                 # Background level
-            )
-        }
-        print(self.x_data[np.argmin(self.y_data)])
-        # Select the appropriate fitting function and initial guess parameters
-        fit_function, p0 = fit_functions[self.fit_type] #p0 being initial parameters and bg
-        # try:
-        popt, _ = curve_fit(fit_function, self.x_data, self.y_data, p0=p0, maxfev=10000)
-        # except RuntimeError as e:
-        #     print(f"Fitting error: {e}")
-        #     continue
-
-        self.fitted_y_data = fit_function(self.x_data, *popt)
-        #print(f'fitdatashape{np.shape(self.fitted_y_data)}')
+        fit_time_start = time.time()
+        popt, fitted = self.fit_lorentzian(self.x_data, self.y_data, self.fit_type)
+        self.fitted_y_data = fitted
+        fit_time = time.time() - fit_time_start
 
         center_freq = popt[0]
         fwhm = 2 * popt[2]
@@ -373,78 +396,53 @@ class ODMRModule:
         })
         #print(f'data dict: {self.data_dict}')
         
-        self.counts_old = counts
+        #self.counts_old = counts
+        print(f'fit_time: {fit_time}')
         print("done!")
      
    
 
 
-    # @staticmethod
-    # def generate_fake_data(x_data, fit_type, noise_level=0.05, gamma_broad=1000, bg=10):
-    #     if fit_type == "Single Lorentzian":
-    #         y_data = ODMRModule.lorentzian(x_data, x_data[len(x_data) // 2], 10, gamma_broad, bg)
-    #     elif fit_type == "Double Lorentzian":
-    #         y_data = ODMRModule.double_lorentzian(x_data, x_data[len(x_data) // 3], 1, gamma_broad,
-    #                                               x_data[2 * len(x_data) // 3], 0.5, gamma_broad)
-    #     elif fit_type == "Triple Lorentzian":
-    #         y_data = ODMRModule.triple_lorentzian(x_data, x_data[len(x_data) // 4], 1, gamma_broad,
-    #                                               x_data[2 * len(x_data) // 4], 0.5, gamma_broad,
-    #                                               x_data[3 * len(x_data) // 4], 0.3, gamma_broad)
-    #     else:
-    #         raise ValueError(f"Unsupported fit type: {fit_type}")
-    
-    #     noise = np.random.normal(0, noise_level, len(x_data))
-    #     y_data += noise
-    #     return y_data
-    @staticmethod
-    def generate_fake_data(x_data, fit_type, noise_level=0.05, gamma_broad=10, bg=10):
+    def generate_fake_data(self, x_data, fit_type, center_freq=2875, noise_level=0.01):
         """
-        Generates fake ODMR data with sharper Lorentzian dips.
-        
+        Generates realistic fake ODMR data in kcps, mimicking real experimental output.
         Parameters:
-        - x_data: Array of frequency values.
-        - fit_type: Type of Lorentzian function ("Single Lorentzian", "Double Lorentzian", "Triple Lorentzian").
-        - noise_level: Standard deviation of noise.
-        - gamma_broad: FWHM (Lower = Sharper dips).
-        - bg: Background level.
-        
+        - x_data: frequency axis [MHz]
+        - fit_type: "Single Lorentzian", "Double Lorentzian", "Triple Lorentzian"
+        - center_freq: main dip frequency in MHz
+        - noise_level: relative noise level (as a fraction of signal)
         Returns:
-        - y_data: Simulated ODMR signal with dips.
+        - y_data: simulated kcps signal
         """
+        bg_kcps = 300  # Background level in kcps (typical real value)
+        contrast = 0.5  # 5% contrast
+        fwhm = 10  # FWHM in MHz (typical value)
+        gamma = fwhm / 2  # Convert to gamma
         if fit_type == "Single Lorentzian":
-            y_data = ODMRModule.lorentzian(x_data, x_data[len(x_data) // 2], 10, gamma_broad, bg)
-    
+            y_data = self.lorentzian(x_data, center_freq, bg_kcps * contrast, gamma, bg_kcps)
         elif fit_type == "Double Lorentzian":
-            y_data = ODMRModule.double_lorentzian(
-                x_data, 
-                x_data[len(x_data) // 3], 10, gamma_broad, 
-                x_data[2 * len(x_data) // 3], 5, gamma_broad, bg
+            y_data = self.double_lorentzian(
+                x_data,
+                center_freq - 40, bg_kcps * contrast * 0.8, gamma,
+                center_freq + 40, bg_kcps * contrast * 0.6, gamma,
+                bg_kcps
             )
-    
         elif fit_type == "Triple Lorentzian":
-            y_data = ODMRModule.triple_lorentzian(
-                x_data, 
-                x_data[len(x_data) // 4], 10, gamma_broad, 
-                x_data[2 * len(x_data) // 4], 5, gamma_broad, 
-                x_data[3 * len(x_data) // 4], 3, gamma_broad, bg
+            y_data = self.triple_lorentzian(
+                x_data,
+                center_freq - 50, bg_kcps * contrast * 0.8, gamma,
+                center_freq,       bg_kcps * contrast * 1.0, gamma,
+                center_freq + 50, bg_kcps * contrast * 0.6, gamma,
+                bg_kcps
             )
-    
         else:
             raise ValueError(f"Unsupported fit type: {fit_type}")
-    
-        # Add noise with lower amplitude to preserve dip sharpness
-        noise = np.random.normal(0, noise_level, len(x_data))  # * np.abs(y_data).max()
+        # Add small noise relative to signal
+        noise = np.random.normal(0, noise_level * bg_kcps, len(x_data))
         y_data += noise
-    
         return y_data
     
  
-
-    
-    
-
-
-
 
             
 
@@ -506,6 +504,9 @@ class ODMRModule:
         return (ODMRModule.lorentzian(x, x0, a1, gamma1, 0) +
                 ODMRModule.lorentzian(x, x1, a2, gamma2, 0) +
                 ODMRModule.lorentzian(x, x2, a3, gamma3, 0) + bg)
+
+
+
 
     def cleanup(self):
         

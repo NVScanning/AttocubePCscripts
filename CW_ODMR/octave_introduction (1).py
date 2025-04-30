@@ -35,8 +35,8 @@ con = "con1"
 octave = "octave1"
 # The elements used to test the ports of the Octave
 elements = ["qe1"]
-IF = 50e6  # The IF frequency
-LO = 2.87e9  # The LO frequency
+IF = 70e6  # The IF frequency
+LO = 2.80e9  # The LO frequency
 
 # The configuration used here
 config = {

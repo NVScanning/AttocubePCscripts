@@ -22,14 +22,26 @@ from qm import SimulationConfig
 import matplotlib.pyplot as plt
 from configuration_with_octave_Last import *
 
+# from qualang_tools.results.data_handler import DataHandler
+
+from pathlib import Path
+from datetime import datetime
+
+
 
 ###################
 # The QUA program #
 ###################
 
-t_vec = np.arange(4, 400, 1)  # Pulse durations in clock cycles (4ns)
+t_vec = np.arange(4, 600, 1)  # Pulse durations in clock cycles (4ns)
 n_avg = 1_000_000  # Number of averaging loops
 
+# Data to save
+save_data_dict = {
+    "n_avg": n_avg,
+    "t_vec": t_vec,
+    "config": config,
+}
 with program() as time_rabi:
     counts = declare(int)  # variable for number of counts
     counts_st = declare_stream()  # stream for counts
@@ -43,7 +55,9 @@ with program() as time_rabi:
     play("laser_ON", "AOM1")
     wait(wait_for_initialization * u.ns, "AOM1")
     
-    update_frequency("NV", 0*u.MHz)
+    #update_frequency("NV", 0*u.MHz)
+    update_frequency("NV", 70.5*u.MHz)
+
 
     # Time Rabi sweep
     with for_(n, 0, n < n_avg, n + 1):
@@ -53,7 +67,7 @@ with program() as time_rabi:
             align()  # Play the laser pulse after the mw pulse
             play("laser_ON", "AOM1")
             # Measure and detect the photons on SPCM1
-            measure("readout", "SPCM1", None, time_tagging.analog(times, long_meas_len_1, counts))
+            measure("readout", "SPCM1", None, time_tagging.analog(times, meas_len_1, counts))
             save(counts, counts_st)  # save counts
 
             # Wait and align all elements before measuring the dark events
@@ -65,7 +79,7 @@ with program() as time_rabi:
             align()  # Play the laser pulse after the mw pulse
             play("laser_ON", "AOM1")
             # Measure and detect the dark counts on SPCM1
-            measure("readout", "SPCM1", None, time_tagging.analog(times, long_meas_len_1, counts))
+            measure("readout", "SPCM1", None, time_tagging.analog(times, meas_len_1, counts))
             save(counts, counts_dark_st)  # save dark counts
             wait(wait_after_measure)
 
@@ -110,11 +124,49 @@ else:
         progress_counter(iteration, n_avg, start_time=results.get_start_time())
         # Plot data
         plt.cla()
-        #plt.plot(t_vec * 4, counts / 1000 / (meas_len_1 / u.s), label="photon counts")
-        #plt.plot(t_vec * 4, counts_dark / 1000 / (meas_len_1 / u.s), label="dark counts")
-        plt.plot(t_vec * 4, counts_dark / 1000 / (meas_len_1 / u.s)-counts / 1000 / (meas_len_1 / u.s), label="difference")
+        plt.plot(t_vec * 4, counts / 1000 / (meas_len_1 / u.s), label="photon counts")
+        plt.plot(t_vec * 4, counts_dark / 1000 / (meas_len_1 / u.s), label="dark counts")
+        #plt.plot(t_vec * 4, (counts / counts_dark), label="Normalized Rabi")
+
+        #plt.plot(t_vec * 4, counts_dark / 1000 / (meas_len_1 / u.s)-counts / 1000 / (meas_len_1 / u.s), label="difference")
         plt.xlabel("Rabi pulse duration [ns]")
         plt.ylabel("Intensity [kcps]")
         plt.title("Time Rabi")
         plt.legend()
         plt.pause(0.1)
+    # 1. Create a results folder with timestamp
+    script_name = Path(__file__).stem
+    base_dir = Path(__file__).parent / "results"
+    base_dir.mkdir(parents=True, exist_ok=True)
+    
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    save_folder = base_dir / f"{script_name}_{timestamp}"
+    save_folder.mkdir(parents=True, exist_ok=True)
+    
+    # 2. Define file path
+    save_path = save_folder / f"{script_name}_time_rabi_data.txt"
+    
+    # 3. Write everything in one file
+    with open(save_path, 'w') as f:
+        # Header: Parameters
+        f.write("# Parameters:\n")
+        f.write(f"n_avg = {n_avg}\n")
+        f.write(f"meas_len_1 = {meas_len_1}\n")
+        f.write(f"wait_for_initialization = {wait_for_initialization}\n")
+        f.write(f"wait_after_measure = {wait_after_measure}\n")
+        f.write(f"NV_IF_freq = {NV_IF_freq}\n")
+        f.write("\n")
+    
+        # Header: t_vec
+        f.write("# t_vec (Pulse Durations in clock cycles):\n")
+        f.write(" ".join(str(val) for val in t_vec) + "\n\n")
+    
+        # Header: Counts Data
+        f.write("# Counts Data:\n")
+        f.write(" ".join(str(val) for val in counts) + "\n\n")
+    
+        # Header: Dark Counts Data
+        f.write("# Dark Counts Data:\n")
+        f.write(" ".join(str(val) for val in counts_dark) + "\n")
+    
+    print(f"Data saved to: {save_path}")

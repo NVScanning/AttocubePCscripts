@@ -6,6 +6,7 @@ from tkinter import StringVar
 
 import numpy as np
 from scipy.optimize import curve_fit
+import scipy.stats
 import time
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
@@ -19,7 +20,8 @@ from qualang_tools.control_panel import ManualOutputControl
 from qm.QuantumMachinesManager import QuantumMachinesManager
 from qm.qua import *
 from qm import SimulationConfig
-from configuration_octave_scan import *
+#from configuration_octave_scan import *
+from configuration_with_octave_Last import *
 from qm import LoopbackInterface
 from qm import generate_qua_script
 from qm.octave import *
@@ -452,10 +454,10 @@ class ScannerApp(tk.Tk):
             self.selected_value_var.set("counts [kc/s]")
             return
                 
-        elif selected_value_key != 'counts [kc/s]' and selected_scan == '2D F_Line Scan':
-            print(f"Linescan cannot show {selected_value_key} measurement.")
-            self.selected_value_var.set("counts [kc/s]")
-            return
+        # elif selected_value_key != 'counts [kc/s]' and selected_scan == '2D F_Line Scan':
+        #     print(f"Linescan cannot show {selected_value_key} measurement.")
+        #     self.selected_value_var.set("counts [kc/s]")
+        #     return
         
         if self.heatmap_data_dict[selected_value_key] is not None:
             self.im.set_data(self.heatmap_data_dict[selected_value_key])
@@ -719,10 +721,14 @@ class ScannerApp(tk.Tk):
                 
             a = np.zeros([steps[1], steps[0]])
             a[:,:] = np.nan
-            self.heatmap_data_dict['counts [kc/s]'] = a # y, x
+            
+            self.heatmap_data_dict['counts [kc/s]'] = np.copy(a) # y, x
+            self.heatmap_data_dict['AFM height [um]'] = np.copy(a) # y, x
             self.im.set_extent(np.array([x0 - total_X_length / 2, x0 + total_X_length / 2, y0 - total_Y_length / 2, y0 + total_Y_length / 2])/1e-6)
             
             for i in range(module.slow_steps): 
+            
+              
                 print('Move to new line')
                 
                 pos = self.my_app.asc500.scanner.getPositionsXYRel()
@@ -758,6 +764,7 @@ class ScannerApp(tk.Tk):
                 while (abs(pos[0] - tgt_start[0]) > 0.001e-6 or abs(pos[1] - tgt_start[1]) > 0.001e-6):
                     pos = self.my_app.asc500.scanner.getPositionsXYRel()
                     time.sleep(0.005)
+               
             
                 tgt = [X_tgt, Y_tgt]
                 
@@ -799,8 +806,10 @@ class ScannerApp(tk.Tk):
                     
                     if fast_axis == 'X':
                         self.heatmap_data_dict['counts [kc/s]'][i, :] = counts[i,:]
+                        self.heatmap_data_dict['AFM height [um]'][i, :] = scipy.stats.binned_statistic(module.x_list[i], module.z_out_list[i], bins=module.fast_steps)[0]
                     elif fast_axis == 'Y':
                         self.heatmap_data_dict['counts [kc/s]'][:, i] = counts[i,:]
+                        self.heatmap_data_dict['AFM height [um]'][:, i] = scipy.stats.binned_statistic(module.y_list[i], module.z_out_list[i], bins=module.fast_steps)[0]
                         
                     # Update the heatmap display
                     self.after(0, self.update_displayed_heatmap)
@@ -828,24 +837,19 @@ class ScannerApp(tk.Tk):
             
             self.my_app.asc500.scanner.setPositioningSpeed(1*1e-6)
             
-            headerlines_AFM = ["#AFM data \n#Columns: x[um], y [um], Z output [um]\n"]
-            pos_data = np.array(module.pos_list)
-            z_out_data = np.array([module.z_out_list]).T
-            AFM_data = np.concatenate((pos_data,z_out_data),axis=1)*1E6
+            #flatten data to save inhomogeneous nested lists
+            z_out_data = np.array([element for sublist in module.z_out_list for element in sublist])*1e6
+            x_out_data = np.array([element for sublist in module.x_list for element in sublist])*1e6
+            y_out_data = np.array([element for sublist in module.y_list for element in sublist])*1e6
             
             base_filename = self.file_name.get()
             self.save_directory = f"//WXPC724/Share/Data/{self.probe.get()}/{self.sample.get()}"  # Default save directory
             directory = self.save_directory + f"/{time.strftime('%Y%m%d')}"
             # Create the full path for saving the data, adding a .txt extension
-            full_path_AFM = os.path.join(directory, f"{time.strftime('%Y%m%d-%H%M-%S')}_{base_filename}_AFM.txt")  
-            with open(full_path_AFM, 'w') as f:
-                f.writelines(headerlines_AFM)
-                np.savetxt(f, AFM_data, delimiter='\t')
+            full_path_AFM = os.path.join(directory, f"{time.strftime('%Y%m%d-%H%M-%S')}_{base_filename}_AFM")  
+            np.savez(full_path_AFM, x=x_out_data, z=z_out_data, y=y_out_data)
                 
-
             print(f"AFM data saved at {full_path_AFM}")
-            
-            
             print("Done Measuring")
             module.disconnect()
             
@@ -1503,6 +1507,7 @@ class ScannerApp(tk.Tk):
                 start_time = int(time.strftime("%M")) * 60 + int(time.strftime("%S"))
                 slow = slow0 + (i) * delta_slow
                 fast = fast0
+                move_to_start_time=time.time()
                 
                 #Set the positions of slow axis
                 if(fast_axis == 'X'):
@@ -1512,6 +1517,12 @@ class ScannerApp(tk.Tk):
                 elif(fast_axis == 'Y'):
                     self.my_app.move(slow, fast)
                     time.sleep(0.05)
+                    
+                   
+                move_to_start_time_end=time.time()
+                
+                line_start_time=move_to_start_time_end-move_to_start_time
+                print(f'line_start_time : {line_start_time}')
       
                 # Inner loop for the fast axis scanning
                 for j in range(module.fast_steps):

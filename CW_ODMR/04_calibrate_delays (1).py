@@ -23,7 +23,7 @@ from configuration_with_octave_Last import *
 ##################
 # Parameters Definition
 laser_delay = 500  # delay before laser [ns]
-initialization_len = 2_000  # laser duration length [ns]
+initialization_len = 3_000  # laser duration length [ns]
 mw_len = 1_000  # MW duration length [ns]
 wait_between_runs = 10_000  # [ns]
 n_avg = 10_000_000
@@ -55,7 +55,10 @@ with program() as calib_delays:
     n = declare(int)  # variable used in for loop for averaging
     n_st = declare_stream()  # stream for 'iteration'
     
-    update_frequency("NV", 0 *u.MHz)
+    #update_frequency("NV", 0 *u.MHz)
+    update_frequency("NV", NV_IF_freq)
+
+    
 
     with for_(n, 0, n < n_avg, n + 1):  # QUA for_ loop for averaging
         # Wait before starting the play the laser pulse
@@ -66,7 +69,7 @@ with program() as calib_delays:
         # Delay the microwave pulse with respect to the laser pulse so that it arrive at the middle of the laser pulse
         wait((laser_delay + (initialization_len - mw_len) // 2) * u.ns, "NV")
         # Play microwave pulse
-        play("cw" * amp(1), "NV", duration=mw_len * u.ns)
+        play("cw" * amp(0.5), "NV", duration=mw_len * u.ns)
 
         # Measure the photon counted by the SPCM
         measure("readout", "SPCM1", None, time_tagging.analog(times, meas_len, counts))
