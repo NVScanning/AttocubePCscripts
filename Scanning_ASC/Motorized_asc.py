@@ -15,7 +15,7 @@ Created on Wed Feb 14 12:11:11 2024
 import tkinter as tk
 
 import ASC_500.asc500_device as asc
-
+from ANC300 import ANC300App
 import threading
 import time
 from tkinter import ttk
@@ -74,16 +74,16 @@ class AscStageApp(ttk.Frame):
         #self.step_z = 1.000f
         
         # Position label
-        self.label_x = tk.Label(self, text=f"X: {self.x_pos:0.5f}", font=("Helvetica", 24), bg="black", fg="green", width=12)
-        self.label_y = tk.Label(self, text=f"Y: {self.y_pos:0.5f}", font=("Helvetica", 24), bg="black", fg="green", width=12)
+        self.label_x = tk.Label(self, text=f"X: {self.x_pos:0.5f}", font=("Helvetica", 24), bg="white", width=12)
+        self.label_y = tk.Label(self, text=f"Y: {self.y_pos:0.5f}", font=("Helvetica", 24), bg="white", width=12)
         # self.label_z = tk.Label(self, text=f"Z: {self.z_pos:0.5f}", font=("Helvetica", 24), bg="black", fg="green", width=12)
         
-        self.label_x.bind("<Button-1>", lambda event: self.step_length_popup("x"))
-        self.label_y.bind("<Button-1>", lambda event: self.step_length_popup("y"))
+        #self.label_x.bind("<Button-1>", lambda event: self.step_length_popup("x"))
+        #self.label_y.bind("<Button-1>", lambda event: self.step_length_popup("y"))
         # self.label_z.bind("<Button-1>", lambda event: self.step_length_popup("z"))
         
-        self.label_x.config(text=f"X: {self.x_pos:0.5f}", relief="raised")
-        self.label_y.config(text=f"Y: {self.y_pos:0.5f}", relief="raised")
+        #self.label_x.config(text=f"X: {self.x_pos:0.5f}", relief="raised")
+        #self.label_y.config(text=f"Y: {self.y_pos:0.5f}", relief="raised")
         # self.label_z.config(text=f"Z: {self.z_pos:0.5f}", relief="raised")
         
         self.label_x.grid(row=0, column=0, pady=10)
@@ -99,14 +99,14 @@ class AscStageApp(ttk.Frame):
         self.entry_x.grid(row=3, column=0)
         self.entry_x.insert(0, "1.000") # um
         
-        self.move_x_button = tk.Button(x_frame, text="Rel. Move", command=lambda: threading.Thread(target=self.move_x).start())
+        self.move_x_button = tk.Button(x_frame, text="Rel. Move [um]", command=lambda: threading.Thread(target=self.move_x).start())
 
         self.move_x_button.grid(row=3, column=1)
         
         self.entry_x_to = tk.Entry(x_frame)
         self.entry_x_to.grid(row=4, column=0)
         
-        self.move_x_to_button = tk.Button(x_frame, text="Move To", command=lambda: threading.Thread(target=self.move_x_to).start())
+        self.move_x_to_button = tk.Button(x_frame, text="Move To [um]", command=lambda: threading.Thread(target=self.move_x_to).start())
         self.move_x_to_button.grid(row=4, column=1)
         
         # self.home_x_button = tk.Button(x_frame, text="Home", command=self.home_x)
@@ -127,14 +127,14 @@ class AscStageApp(ttk.Frame):
         self.entry_y.grid(row=3, column=0)
         self.entry_y.insert(0, "1.000") # mikron
         
-        self.move_y_button = tk.Button(y_frame, text="Rel. Move", command=lambda: threading.Thread(target=self.move_y).start())
+        self.move_y_button = tk.Button(y_frame, text="Rel. Move [um]", command=lambda: threading.Thread(target=self.move_y).start())
 
         self.move_y_button.grid(row=3, column=1)
         
         self.entry_y_to = tk.Entry(y_frame)
         self.entry_y_to.grid(row=4, column=0)
         
-        self.move_y_to_button = tk.Button(y_frame, text="Move To", command=lambda: threading.Thread(target=self.move_y_to).start())
+        self.move_y_to_button = tk.Button(y_frame, text="Move To [um]", command=lambda: threading.Thread(target=self.move_y_to).start())
 
         self.move_y_to_button.grid(row=4, column=1)
         

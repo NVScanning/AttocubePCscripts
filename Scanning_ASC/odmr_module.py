@@ -4,7 +4,8 @@ from transitions import Machine
 from qm.QuantumMachinesManager import QuantumMachinesManager
 from qm.qua import *
 import time
-from configuration_octave_scan import *
+#from configuration_octave_scan import *
+from configuration_with_octave_Last import *
 
 
 import threading
@@ -112,10 +113,10 @@ class ODMRModule:
             iteration = declare(int)
             m_avg = self.N_average
             counts_dark_st = declare_stream()  # stream for counts
-
-          
             
             with for_(i, 0, i < flattened + 1, i + 1):
+                
+                pause()
                 
                 with for_(m, 0, m < m_avg, m + 1):
                
@@ -139,7 +140,7 @@ class ODMRModule:
                         align()
                         # Play the mw pulse...
                         play("laser_ON", "AOM1", duration=self.readout_len * u.ns)
-                        play("cw" * amp(0.5), "NV", duration=self.readout_len * u.ns)
+                        play("cw" * amp(1), "NV", duration=self.readout_len * u.ns)
                         # ... and the laser pulse simultaneously (the laser pulse is delayed by 'laser_delay_1')
                         #play("laser_ON", "AOM1", duration=self.readout_len * u.ns)
                         wait(1_000 * u.ns, "SPCM1")  # so readout don't catch the first part of spin reinitialization
@@ -164,10 +165,9 @@ class ODMRModule:
 
                         wait(wait_between_runs * u.ns)
                         
-                pause()
                     
             with stream_processing():
-                counts_st.buffer(m_avg, len(self.f_vec)).map(FUNCTIONS.average(0)).save("counts")
+                counts_st.buffer(m_avg, len(self.f_vec)).map(FUNCTIONS.average(0)).save_all("counts")
                 n_st.save("iteration")
          
         self.job = self.qm.execute(cw_odmr)  
@@ -177,9 +177,9 @@ class ODMRModule:
 
     def on_start_fetching(self):
         print("Started fetching data.")
-        self.res_handles = self.job.result_handles
-        self.counts_handle = self.res_handles.get("counts")
-        self.iteration_handle = self.res_handles.get("iteration")
+        # self.res_handles = self.job.result_handles
+        # self.counts_handle = self.res_handles.get("counts")
+        # self.iteration_handle = self.res_handles.get("iteration")
         if not self.job:
             print("No job to fetch data from.")
             return
@@ -298,7 +298,13 @@ class ODMRModule:
             p0 = [x_data[min_idx[0]], A1, gamma_guess,
                   x_data[min_idx[1]], A2, gamma_guess,
                   bg]
-            popt, _ = curve_fit(ODMRModule.double_lorentzian, x_data, y_data, p0=p0, maxfev=10000)
+            
+            try:
+                popt, _ = curve_fit(ODMRModule.double_lorentzian, x_data, y_data, p0=p0, maxfev=50000)
+                
+            except:
+                popt = p0
+                
             return popt, ODMRModule.double_lorentzian(x_data, *popt)
     
         elif fit_type == "Triple Lorentzian":
@@ -315,18 +321,7 @@ class ODMRModule:
 
 
     def get_data(self,f_idx):
-        print("in get data")
-      
         
-        self.iteration_handle.wait_for_values(1)
-        print(f'state:{self.state}')
-        
-        self.iteration_sum=0
-        self.counts_sum = np.zeros(np.shape(self.f_vec))
-        self.fitted_y_data= np.zeros(np.shape(self.f_vec))
-        self.y_data=np.zeros(np.shape(self.f_vec))
-        
-
         try:
             self.job.resume()
                 # Wait until the program reaches the 'pause' statement again, indicating that the QUA program is done
@@ -335,25 +330,34 @@ class ODMRModule:
         
         except:
             pass
+        
+        if f_idx == 0:
+            self.res_handles = self.job.result_handles
+            self.counts_handle = self.res_handles.get("counts")
+            self.iteration_handle = self.res_handles.get("iteration")
+        
+        print("in get data")
+        self.iteration_handle.wait_for_values(1)
+        print(f'state:{self.state}')
+        
+        self.iteration_sum=0
+        self.counts_sum = np.zeros(np.shape(self.f_vec))
+        self.fitted_y_data= np.zeros(np.shape(self.f_vec))
+        self.y_data=np.zeros(np.shape(self.f_vec))
                       
-        print('wa')
+        #print('wa')
         self.counts_handle.wait_for_values(1)
         self.iteration_handle.wait_for_values(1)
-        print('it')
+        #print('it')
 
-        iteration = self.iteration_handle.fetch("iteration")
-        print(f"iteration: {iteration}")
+        new_counts = self.counts_handle.fetch_all() #add something to check size of fetched array
         
-        while iteration < self.N_average - 1 and self.app.scanning:
-            iteration = self.iteration_handle.fetch("iteration")
-            print(f"iteration: {iteration}")
-            time.sleep(0.05)
+        while np.shape(new_counts)[0] != f_idx + 1 and type(self.job) != type(None):
+            print('waiting for counts')
+            time.sleep(0.1)
+            new_counts = self.counts_handle.fetch_all()
         
-        counts = self.counts_handle.fetch("counts")
-        print(f'iteration: {iteration}')
-        
-    
-        print(f'odmr x:{self.x_data}')
+        counts = new_counts["value"][-1]
         
         self.x_data = (NV_LO_freq + self.f_vec) / u.MHz # x axis [frequencies]
         #self.x_data = (NV_LO_freq + self.f_vec*u.MHz) / u.GHz
@@ -361,10 +365,8 @@ class ODMRModule:
         self.y_data = (counts / 1000 / (self.readout_len * 1e-9)) # counts( [frequencies])
         #print(f"y_data: {self.y_data}")
         # print(f"fitted_y: {self.fitted_y_data}")
-        fit_time_start = time.time()
         popt, fitted = self.fit_lorentzian(self.x_data, self.y_data, self.fit_type)
         self.fitted_y_data = fitted
-        fit_time = time.time() - fit_time_start
 
         center_freq = popt[0]
         fwhm = 2 * popt[2]
@@ -397,7 +399,7 @@ class ODMRModule:
         #print(f'data dict: {self.data_dict}')
         
         #self.counts_old = counts
-        print(f'fit_time: {fit_time}')
+        #print(f'fit_time: {fit_time}')
         print("done!")
      
    

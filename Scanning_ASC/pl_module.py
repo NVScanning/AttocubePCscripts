@@ -4,7 +4,8 @@ from transitions import Machine
 from qm.QuantumMachinesManager import QuantumMachinesManager
 from qm.qua import *
 import time
-from configuration_octave_scan import *
+#from configuration_octave_scan import *
+from configuration_with_octave_Last import *
 
 import threading
 from threading import Lock

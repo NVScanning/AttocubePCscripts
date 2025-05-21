@@ -1,0 +1,5 @@
+n_avg = 1000000
+meas_len_1 = 500
+wait_for_initialization = 1500
+wait_after_measure = 1000
+NV_IF_freq = 71250000.0

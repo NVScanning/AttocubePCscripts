@@ -12,6 +12,11 @@ commands:
     echo <on/off>: turn console echo on/off
     See manual for other commands
 
+Class functions:
+    do: give a direct command to the console
+    ramp: ramp upto a given value in increments of 50nm, approx 0.1V/s
+    step: add a chosen step to the voltage
+
 """
 
 import telnetlib
@@ -42,15 +47,22 @@ class TelnetFunction:
         
         return output
             
-    def ramp(self, axis, voltage):
-        V_0 = float(self.do(f"geta {axis}").split()[2])
+    def ramp(self, axis, voltage): #currently approx 0.1V/s
+        self.do("echo off")
+        V_0 = float(self.do(f"geta {axis}").split()[2]) #starting value
         print(V_0)
-        steps = np.arange(V_0, voltage, 0.01) + 0.01
+        steps = np.arange(V_0, float(voltage), 0.005) + 0.005 #split into steps of 50nm
         print(steps)
         for step in steps:
-            self.do(f"seta {axis} {step}", Print=False, sleeptime=0.01)
+            self.do(f"seta {axis} {step}", Print=False, sleeptime=0.04)
             
         self.do(f"geta {axis}")
+        
+    def step(self, axis, step):
+        self.do("echo off")
+        V_0 = float(self.do(f"geta {axis}").split()[2]) #starting value
+        self.do(f"seta {axis} {V_0+step}")
+        
     
     def close(self): #close connection with machine
         self.tn.close()
@@ -62,13 +74,13 @@ tn = TelnetFunction(host, port) #connect to machine
 for i in range(3):
     tn.do(f"setm {i+1} off") #set all axis to offset mode
     
-tn.do("echo off")
-
 t1 = time.time()
-
-tn.ramp(1, 2)
-
+tn.ramp(1, 0.5)
 t2 = time.time()
+
+tn.step(1, 0.1)
+
+tn.do("echo on")
 
 print(f"Ramp time: {t2 -t1}s, avg:{(t2-t1)/20}")
 
@@ -78,6 +90,10 @@ tn.do("geta 1")
 tn.do("seta 1 0")
 tn.do("getm 3")
 
+for i in range(3):
+    tn.ramp(i, 0)
+    tn.do(f"setm {i+1} gnd") #set all axis to offset mode
+    
 tn.close()
 
 

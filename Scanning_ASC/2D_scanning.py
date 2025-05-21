@@ -15,6 +15,8 @@ import os
 
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from Motorized_asc import AscStageApp
+from ANC300 import ANC300App
+
 import threading
 from qualang_tools.control_panel import ManualOutputControl
 from qm.QuantumMachinesManager import QuantumMachinesManager
@@ -95,7 +97,7 @@ class ScannerApp(tk.Tk):
         self.motorized_stage_app = self.my_app
         
         self.motorized_stage_app.grid(column=0, row=0, sticky="nsew")
-    
+            
         # Control Panel Frame
         self.control_frame = ttk.Frame(self)
         self.control_frame.grid(row=1, column=1, sticky="nsew")
@@ -687,9 +689,7 @@ class ScannerApp(tk.Tk):
             2D Fast-Line scan function averages the n_data_points_per_pixel for every pixel and updates the heat-map.
             Also contains the logic to operate whether X or Y as a fast_axis.
             
-            """
-        
-            
+            """           
             #Linear transition state-machinary to prepare OPX for getting data
             module.connect()   
             module.start_job()
@@ -1437,7 +1437,6 @@ class ScannerApp(tk.Tk):
                 
                
             if module.state == 'job_started':
-                
                 module.stop_job()
            
             if module.state == 'get_data':
