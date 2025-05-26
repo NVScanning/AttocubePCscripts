@@ -223,15 +223,16 @@ class AscStageApp(ttk.Frame):
             entry.insert(0, "0.5")
             
         #Buttons to set movements
-        Button_MoveX = ttk.Button(master=ANC_frame, text="\u2713", style="Std.TButton", command= lambda:self.ANC_set_move(1))
-        Button_MoveY = ttk.Button(master=ANC_frame, text="\u2713", style="Std.TButton", command= lambda:self.ANC_set_move(2))
-        Button_MoveZ = ttk.Button(master=ANC_frame, text="\u2713", style="Std.TButton", command= lambda:self.ANC_set_move(3))
-        X_smaller = ttk.Button(master=ANC_frame, text="\u2BC7", style="Std.TButton", command= lambda:self.ANC_set_step(1,-1))
-        X_larger = ttk.Button(master=ANC_frame, text="\u2BC8", style="Std.TButton", command= lambda:self.ANC_set_step(1,1))
-        Y_smaller = ttk.Button(master=ANC_frame, text="\u2BC7", style="Std.TButton", command= lambda:self.ANC_set_step(2,-1))
-        Y_larger = ttk.Button(master=ANC_frame, text="\u2BC8", style="Std.TButton", command=lambda:self.ANC_set_step(2,1))
-        Z_smaller = ttk.Button(master=ANC_frame, text="\u2BC7", style="Std.TButton", command=lambda:self.ANC_set_step(3,-1))
-        Z_larger = ttk.Button(master=ANC_frame, text="\u2BC8", style="Std.TButton", command=lambda:self.ANC_set_step(3,1))
+        Button_MoveX = ttk.Button(master=ANC_frame, text="\u2713", style="Std.TButton", command= lambda: threading.Thread(target=self.ANC_set_move, args=[1]).start())
+        Button_MoveY = ttk.Button(master=ANC_frame, text="\u2713", style="Std.TButton", command= lambda: threading.Thread(target=self.ANC_set_move, args=[2]).start())
+        Button_MoveZ = ttk.Button(master=ANC_frame, text="\u2713", style="Std.TButton", command= lambda: threading.Thread(target=self.ANC_set_move, args=[3]).start())
+        X_smaller = ttk.Button(master=ANC_frame, text="\u2BC7", style="Std.TButton", command= lambda: threading.Thread(target=self.ANC_set_step(1,-1)).start())
+        X_larger = ttk.Button(master=ANC_frame, text="\u2BC8", style="Std.TButton", command= lambda: threading.Thread(target=self.ANC_set_step(1,1)).start())
+        Y_smaller = ttk.Button(master=ANC_frame, text="\u2BC7", style="Std.TButton", command= lambda: threading.Thread(target=self.ANC_set_step(2,-1)).start())
+        Y_larger = ttk.Button(master=ANC_frame, text="\u2BC8", style="Std.TButton", command=lambda: threading.Thread(target= self.ANC_set_step(2,1)).start())
+        Z_smaller = ttk.Button(master=ANC_frame, text="\u2BC7", style="Std.TButton", command=lambda: threading.Thread(target=self.ANC_set_step(3,-1)).start())
+        Z_larger = ttk.Button(master=ANC_frame, text="\u2BC8", style="Std.TButton", command=lambda: threading.Thread(target=self.ANC_set_step(3,1)).start())
+        Button_abort = ttk.Button(master=ANC_frame, text="Abort move", style = 'Std.TButton', width=10, command=self.ANC_abort_move)
         Button_MoveX.grid(column=3,row=2)
         Button_MoveY.grid(column=3,row=3)
         Button_MoveZ.grid(column=3,row=4)
@@ -241,6 +242,7 @@ class AscStageApp(ttk.Frame):
         Y_larger.grid(column=6, row=3)
         Z_smaller.grid(column=5, row=4)
         Z_larger.grid(column=6, row=4)
+        Button_abort.grid(column=7, row=3, padx=10)
 
         self.iterator = 0 
         self.periodic_position_update()
@@ -594,15 +596,24 @@ class AscStageApp(ttk.Frame):
                 
                 for i in range(2):
                     self.ASC_dynamiclabels[i].set(f"{round(self.currPos[i]/1e-6,3)} um")
+                    
+                if not self.ANC.moving:
+                    for i in range(3):
+                        self.ANC_dynamiclabels[i].set(f"{self.ANC.get_output(i+1, Print=False)} V")
       
-            self.after(100, self.periodic_position_update)
+            self.after(1000, self.periodic_position_update)
          
     def ANC_set_move(self, axis): 
         pos = float(self.Moves[axis-1].get())
-        self.ANC.ramp(axis, pos)
+        self.ANC.ramp(axis, pos, label=self.ANC_dynamiclabels[axis-1])
         self.ANC_dynamiclabels[axis-1].set(f"{self.ANC.get_output(axis, Print=False)} V")
         
     def ANC_set_step(self,axis, direction): 
         step = abs(float(self.Steps[axis-1].get()))*direction
         self.ANC.step(axis, step)
         self.ANC_dynamiclabels[axis-1].set(f"{self.ANC.get_output(axis, Print=False)} V")
+        
+    def ANC_abort_move(self):
+        self.ANC.abort = True
+        self.ANC.moving = False
+        

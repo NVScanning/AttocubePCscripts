@@ -23,11 +23,14 @@ import telnetlib
 import time
 import numpy as np
 from tkinter import ttk
+import tkinter as tk
 
 
 class ANC300App(ttk.Frame):
     def __init__(self, host, port):
         self.connect(host, port)
+        self.abort = None
+        self.moving = False
 
         self.x_pos = self.get_output(1, Print=False) #get initial positions
         self.y_pos = self.get_output(2, Print=False)
@@ -74,27 +77,50 @@ class ANC300App(ttk.Frame):
         return output
     
     def get_output(self, axis, Print=True): #return offset voltage
-        output_string = self.do(f"geto {axis}", Print=Print) #change to geto for measured output voltage
+        output_string = self.do(f"geto {axis}", Print=Print) #change to geto for measured output voltage       
         return float(output_string.split()[2])
             
-    def ramp(self, axis, voltage): #currently approx 0.1V/s
+    def ramp(self, axis, voltage, label=None): #currently approx 0.1V/s
+        self.abort = False
+        self.moving = True
+        t1 = time.time()
+    
         print(f"target: {voltage}")
         if float(voltage) > self.limits:
             print(f"Voltage outside of limits (0, {self.limits}V)")
             return
         
         self.do("echo off")
-        V_0 = float(self.do(f"geto {axis}").split()[2]) #starting value
+        V_0 = float(self.do(f"geto {axis}", sleeptime=0.1).split()[2]) #starting value
         print(f"start: {V_0}")
         
-        steps = np.arange(V_0, float(voltage), 0.05*np.sign(voltage-V_0)) + 0.05*np.sign(voltage-V_0) #split into steps of 0.05 V
+        steps = np.arange(V_0, float(voltage), 0.1*np.sign(voltage-V_0)) + 0.1*np.sign(voltage-V_0) #split into steps of 0.05 V
         print(steps)
         for step in steps:
-            self.do(f"seta {axis} {step}", Print=False, sleeptime=0.02)
+            
+            if self.abort == False:
+                self.do(f"seta {axis} {step}", Print=False, sleeptime=0.02)
+                
+                if type(label) != type(None):
+                    
+                    try:
+                        label.set(f"{self.get_output(axis, Print=False)} V")
+                        
+                    except:
+                        #print("second try:")
+                        label.set(f"{self.get_output(axis, Print=False)} V") #try again if the output wasn't there yet
+                            
+                
+            else:
+                break
             
         self.do(f"geta {axis}")
+        self.moving = False
+        t2 = time.time()
+        print(f"time: {t2-t1}s, avg: {(t2-t1)/(voltage-V_0)}s")
         
     def step(self, axis, step):
+        self.moving = True
         self.do("echo off")
         V_0 = float(self.do(f"geto {axis}").split()[2]) #starting value
         if float(V_0+step) > self.limits or float(V_0+step) < 0:
@@ -102,6 +128,7 @@ class ANC300App(ttk.Frame):
             return
         
         self.do(f"seta {axis} {V_0+step}")
+        self.moving = False
         
     
     def close(self): #close connection with machine
@@ -123,14 +150,15 @@ class ANC300App(ttk.Frame):
 #     tn.update_T(temp)
     
 # t1 = time.time()
-# tn.ramp(1, 20)
+
+# tn.ramp(1, 0, label=1)
 # tn.ramp(2, 20)
 # t2 = time.time()
 
 # tn.step(1, 0.1)
 
 
-# print(f"Ramp time: {t2 -t1}s, avg:{(t2-t1)/15}")
+# print(f"Ramp time: {t2 -t1}s, avg:{(t2-t1)/20}")
 
 # tn.do("geta 1") #get offset voltage axis 1
 # tn.do("seta 1 0.3") #set offset voltage axis 1
