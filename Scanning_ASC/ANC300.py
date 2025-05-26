@@ -14,7 +14,7 @@ commands:
 
 Class functions:
     do: give a direct command to the console
-    ramp: ramp upto a given value in increments of 50nm, approx 0.1V/s
+    ramp: ramp upto a given value in increments of 0.05V, approx 1.5V/s = 1um/s
     step: add a chosen step to the voltage
 
 """
@@ -22,7 +22,6 @@ Class functions:
 import telnetlib
 import time
 import numpy as np
-import tkinter as tk
 from tkinter import ttk
 
 
@@ -30,14 +29,17 @@ class ANC300App(ttk.Frame):
     def __init__(self, host, port):
         self.connect(host, port)
 
-        self.x_pos = self.get_output(1) #get initial positions
-        self.y_pos = self.get_output(2)
-        self.z_pos = self.get_output(3)
-        self.stepsize = 0.1 #set initial step size
+        self.x_pos = self.get_output(1, Print=False) #get initial positions
+        self.y_pos = self.get_output(2, Print=False)
+        self.z_pos = self.get_output(3, Print=False)
         
-        self.limits_RT = 3.0 #upper limit for room temperature [V]
-        self.limits_LT = 7.5 #upper limit for low temperature [V]
+        self.limits_RT = 45 #upper limit for room temperature [V]
+        self.limits_LT = 112.5 #upper limit for low temperature [V]
+        #self.range_xyRT = 30
+        #self.range_xyLT = 15
+        
         self.update_T(293) #set initial temperature to 293K and update voltage limits accordingly
+        #self.conversion_xy = self.limits/self.range_xy
         
     def connect(self, host, port): #connect to the machine
         self.tn = telnetlib.Telnet(host, port)
@@ -45,12 +47,15 @@ class ANC300App(ttk.Frame):
         self.tn.write(b"123456\n") #returns authorization code
         self.tn.read_until(b"> ")
         self.do("echo off")
+        
+        for i in range(3):
+            self.do(f"setm {i+1} off", sleeptime=0.1) #set all axis to offset mode
         print('connected')
         
     def update_T(self, temp):
         self.T = float(temp)
         self.limits = self.limits_LT + (temp-4)*(self.limits_LT-self.limits_RT)/(4-300) #temperature dependent limit [V]
-        print(self.limits)
+        #print(self.limits)
         
     def do(self, command, Print=True, sleeptime=0.05): #send a command to the machine
         cmd = command + "\n"
@@ -68,29 +73,34 @@ class ANC300App(ttk.Frame):
         
         return output
     
-    def get_output(self, axis): #return offset voltage
-        output_string = self.do(f"geta {axis}") #change to geto for measured output voltage
-        output = float(output_string.split()[2])
-        return output
+    def get_output(self, axis, Print=True): #return offset voltage
+        output_string = self.do(f"geto {axis}", Print=Print) #change to geto for measured output voltage
+        return float(output_string.split()[2])
             
     def ramp(self, axis, voltage): #currently approx 0.1V/s
+        print(f"target: {voltage}")
         if float(voltage) > self.limits:
             print(f"Voltage outside of limits (0, {self.limits}V)")
             return
         
         self.do("echo off")
-        V_0 = float(self.do(f"geta {axis}").split()[2]) #starting value
-        print(V_0)
-        steps = np.arange(V_0, float(voltage), 0.005) + 0.005 #split into steps of 50nm
+        V_0 = float(self.do(f"geto {axis}").split()[2]) #starting value
+        print(f"start: {V_0}")
+        
+        steps = np.arange(V_0, float(voltage), 0.05*np.sign(voltage-V_0)) + 0.05*np.sign(voltage-V_0) #split into steps of 0.05 V
         print(steps)
         for step in steps:
-            self.do(f"seta {axis} {step}", Print=False, sleeptime=0.04)
+            self.do(f"seta {axis} {step}", Print=False, sleeptime=0.02)
             
         self.do(f"geta {axis}")
         
     def step(self, axis, step):
         self.do("echo off")
-        V_0 = float(self.do(f"geta {axis}").split()[2]) #starting value
+        V_0 = float(self.do(f"geto {axis}").split()[2]) #starting value
+        if float(V_0+step) > self.limits or float(V_0+step) < 0:
+            print(f"Voltage outside of limits (0, {self.limits}V)")
+            return
+        
         self.do(f"seta {axis} {V_0+step}")
         
     
@@ -102,30 +112,33 @@ class ANC300App(ttk.Frame):
 
 # tn = ANC300App(host, port) #connect to machine
 
+# tn.get_output(1, Print=False)
+
 # print(f"x: {tn.x_pos}, y: {tn.y_pos}, z: {tn.z_pos}")
 
 # for i in range(3):
-#     tn.do(f"setm {i+1} off") #set all axis to offset mode
+#     tn.do(f"setm {i+1} gnd") #set all axis to offset mode
     
 # for temp in [2, 4, 150, 300]:
 #     tn.update_T(temp)
     
 # t1 = time.time()
-# tn.ramp(1, 3.5)
+# tn.ramp(1, 20)
+# tn.ramp(2, 20)
 # t2 = time.time()
 
 # tn.step(1, 0.1)
 
 
-# print(f"Ramp time: {t2 -t1}s, avg:{(t2-t1)/20}")
+# print(f"Ramp time: {t2 -t1}s, avg:{(t2-t1)/15}")
 
 # tn.do("geta 1") #get offset voltage axis 1
 # tn.do("seta 1 0.3") #set offset voltage axis 1
 # tn.do("geta 1")
 # tn.do("geto 1")
 # output = tn.get_output(1)
-# # tn.do("seta 1 0")
-# # tn.do("getm 3")
+# tn.do("seta 1 0")
+# tn.do("getm 3")
 
 # tn.do("seta 1 0")
 

@@ -82,6 +82,7 @@ class ScannerApp(tk.Tk):
         ### Can we reorder these lines so that all of the initializes happen
         ### then all of the scanning things? ###
         
+       
         # Configure main window weights
         self.grid_columnconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=1)
@@ -91,12 +92,12 @@ class ScannerApp(tk.Tk):
       
         # Motorized Stage App Frame
         self.motorized_stage_frame = ttk.Frame(self)
-        self.motorized_stage_frame.grid(row=0, column=1, sticky="nsew")
+        self.motorized_stage_frame.grid(row=0, column=1)
 
         self.my_app = AscStageApp(self.motorized_stage_frame)
         self.motorized_stage_app = self.my_app
         
-        self.motorized_stage_app.grid(column=0, row=0, sticky="nsew")
+        self.motorized_stage_app.grid(column=0, row=0)
             
         # Control Panel Frame
         self.control_frame = ttk.Frame(self)
@@ -227,12 +228,13 @@ class ScannerApp(tk.Tk):
         control_frame = self.control_frame
 
         style = ttk.Style()
+        style.theme_use('vista')
         style.configure('Large.TButton', font=("Helvetica", 12, "bold"), padding=(20, 10))
         #style.configure('TCombobox', font=('Helvetica', 12), padding=(20, 10))
 
         # Create a new frame for the control panel elements
         scanning_control_frame = ttk.Frame(control_frame)
-        scanning_control_frame.grid(row=1, column=1, sticky="nsew")
+        scanning_control_frame.grid(row=1, column=1)
 
         ttk.Label(scanning_control_frame, text="X Length (um)").grid(row=2, column=0, padx=5, pady=5, sticky="w")
         self.total_X_length = ttk.Entry(scanning_control_frame, width=10)
@@ -296,7 +298,6 @@ class ScannerApp(tk.Tk):
         self.SCAN_button.grid(row=0, column=0, padx=5, pady=5, sticky="ew")
         
         # Style the Combobox (if desired)
-        style = ttk.Style()
         style.configure('Large.TCombobox', font=('Arial', 10))
         ### what is a combobox ###
 

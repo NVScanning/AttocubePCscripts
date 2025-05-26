@@ -20,8 +20,8 @@ import threading
 import time
 from tkinter import ttk
 import tkinter.messagebox as messagebox
-
 from pl_module import PLModule
+
 
 
 class AscStageApp(ttk.Frame):
@@ -64,107 +64,187 @@ class AscStageApp(ttk.Frame):
         self.x_pos = self.currPos[0]
         self.y_pos = self.currPos[1]
   
-        print(f'first_pos: { self.currPos}')
+        print(f'first_pos: {self.currPos}')
         
-
-        #self.z_pos = self.currPos[2]
-
         self.step_x = 1.000
         self.step_y = 1.000
-        #self.step_z = 1.000f
         
-        # Position label
-        self.label_x = tk.Label(self, text=f"X: {self.x_pos:0.5f}", font=("Helvetica", 24), bg="white", width=12)
-        self.label_y = tk.Label(self, text=f"Y: {self.y_pos:0.5f}", font=("Helvetica", 24), bg="white", width=12)
-        # self.label_z = tk.Label(self, text=f"Z: {self.z_pos:0.5f}", font=("Helvetica", 24), bg="black", fg="green", width=12)
+        host = "192.168.10.2" #ANC 300 IP
+        port = 7230 #standard console port
+        self.ANC = ANC300App(host, port) #connect to machine
         
-        #self.label_x.bind("<Button-1>", lambda event: self.step_length_popup("x"))
-        #self.label_y.bind("<Button-1>", lambda event: self.step_length_popup("y"))
-        # self.label_z.bind("<Button-1>", lambda event: self.step_length_popup("z"))
+        style = ttk.Style()
+        style.theme_use("vista")
         
-        #self.label_x.config(text=f"X: {self.x_pos:0.5f}", relief="raised")
-        #self.label_y.config(text=f"Y: {self.y_pos:0.5f}", relief="raised")
-        # self.label_z.config(text=f"Z: {self.z_pos:0.5f}", relief="raised")
-        
-        self.label_x.grid(row=0, column=0, pady=10)
-        self.label_y.grid(row=0, column=2, pady=10)
-        # self.label_z.grid(row=0, column=1, pady=10)
-        
-        # X-axis frame
-        x_frame = tk.Frame(self)
-        x_frame.grid(row=1, column=0, padx=20, pady=10)
-        
-        # Add X-axis widgets like Entry boxes and buttons using grid()
-        self.entry_x = tk.Entry(x_frame)
-        self.entry_x.grid(row=3, column=0)
-        self.entry_x.insert(0, "1.000") # um
-        
-        self.move_x_button = tk.Button(x_frame, text="Rel. Move [um]", command=lambda: threading.Thread(target=self.move_x).start())
+        style.configure(
+            "Std.TLabel",
+            foreground="#000",
+            background="#EDECEC",
+            anchor="tk.center",
+            font=("Helvetica", 11)
+        )
+        style.configure(
+            "Txt.TLabel",
+            foreground="#000",
+            background="#fff",
+            anchor="center",
+            font=("Helvetica", 10),
+            borderwidth=2,
+            relief="groove"
+        )
 
-        self.move_x_button.grid(row=3, column=1)
+        style.configure(
+            "Std.TButton",
+            foreground="#000",
+            background="#E4E2E2",
+            width=3,
+            font=("Helvetica", 10)
+        )
         
-        self.entry_x_to = tk.Entry(x_frame)
-        self.entry_x_to.grid(row=4, column=0)
         
-        self.move_x_to_button = tk.Button(x_frame, text="Move To [um]", command=lambda: threading.Thread(target=self.move_x_to).start())
-        self.move_x_to_button.grid(row=4, column=1)
+        #create frame for ASC scanning
+        ASC_frame = tk.Frame(self, highlightbackground="#99b3e6", highlightthickness=1, padx=20, pady=5)
+        ASC_frame.grid(row=0, column=0, pady=(0,20), ipady=5)
+        ASC_frame.grid_columnconfigure(0, weight=1)
+        ASC_title = ttk.Label(master=ASC_frame, text="Sample motors", font=("Helvetica",12))
+        ASC_title.grid(row=0, columnspan=7, padx=10, pady=(0,5))
         
-        # self.home_x_button = tk.Button(x_frame, text="Home", command=self.home_x)
-        # self.home_x_button.grid(row=5, column=0, columnspan=2)
+        #create frame for ANC
+        ANC_frame = tk.Frame(self, highlightbackground="#99b3e6", highlightthickness=1, padx=20, pady=5)
+        ANC_frame.grid(row=1, column=0, ipady=5)
+        ANC_title = ttk.Label(master=ANC_frame, text="Tip motors", font=("Helvetica",12))
+        ANC_title.grid(row=0, columnspan=7, padx=10)
         
-        self.up_button = tk.Button(x_frame, text="\u25B6", command=lambda: threading.Thread(target=self.move_x_up).start())
-        self.up_button.grid(row=1, column=1)
+                
+        #Labels
+        ASC_label = ttk.Label(master=ASC_frame, text="Step [um]", style="Std.TLabel", width=12)
+        ASC_label1 = ttk.Label(master=ASC_frame, text="Move To [um]", style="Std.TLabel", width=12)
+        ASC_label2 = ttk.Label(master=ASC_frame, text="Position [um]", style="Std.TLabel", width=12)
+        ASC_label3 = ttk.Label(master=ASC_frame, text="X", style="Std.TLabel", padding=[10,0])
+        ASC_label4 = ttk.Label(master=ASC_frame, text="Y", style="Std.TLabel", padding=[10,0])
+        ASC_label.grid(column=4, row=1, padx=10, pady=5)
+        ASC_label1.grid(column=2, row=1, padx=10, pady=5)
+        ASC_label2.grid(column=1, row=1, padx=10, pady=5)
+        ASC_label3.grid(column=0, row=2, padx=10, pady=5)
+        ASC_label4.grid(column=0, row=3, padx=10, pady=5)
         
-        self.down_button = tk.Button(x_frame, text="\u25C0", command=lambda: threading.Thread(target=self.move_x_down).start())
-        self.down_button.grid(row=1, column=0)
-        
-        # Y-axis frame
-        y_frame = tk.Frame(self)
-        y_frame.grid(row=1, column=2, padx=20, pady=10)
-        
-        # Add Y-axis widgets like Entry boxes and buttons using grid()
-        self.entry_y = tk.Entry(y_frame)
-        self.entry_y.grid(row=3, column=0)
-        self.entry_y.insert(0, "1.000") # mikron
-        
-        self.move_y_button = tk.Button(y_frame, text="Rel. Move [um]", command=lambda: threading.Thread(target=self.move_y).start())
+        #Position lables
+        ASC_PosX_var = tk.StringVar() #Dynamic tk variable to update the position lable
+        ASC_PosY_var = tk.StringVar()
+        self.ASC_dynamiclabels = [ASC_PosX_var, ASC_PosY_var] #Initialize variables
+        for i in range(2):
+            self.ASC_dynamiclabels[i].set(f"{round(self.currPos[i]/1e-6,3)} um")
 
-        self.move_y_button.grid(row=3, column=1)
+        ASC_PosX = ttk.Label(master=ASC_frame, textvar=ASC_PosX_var, style="Txt.TLabel", width=12, anchor="center")
+        ASC_PosY = ttk.Label(master=ASC_frame, textvar=ASC_PosY_var, style="Txt.TLabel", width=12, anchor="center")
+        ASC_PosX.grid(column=1, row=2, padx=10, pady=5)       
+        ASC_PosY.grid(column=1, row=3, padx=10, pady=5) 
         
-        self.entry_y_to = tk.Entry(y_frame)
-        self.entry_y_to.grid(row=4, column=0)
+        #Entries to enter movements and steps etc. 
+        self.ASC_MoveX = ttk.Entry(master=ASC_frame, width=12)
+        self.ASC_MoveY = ttk.Entry(master=ASC_frame, width=12)
+        self.ASC_StepX = ttk.Entry(master=ASC_frame, width=12)
+        self.ASC_StepY = ttk.Entry(master=ASC_frame, width=12)
+        self.ASC_MoveX.grid(column=2, row=2, padx=10, pady=5)
+        self.ASC_MoveY.grid(column=2, row=3, padx=10, pady=5)
+        self.ASC_StepX.grid(column=4, row=2, padx=10, pady=5)
+        self.ASC_StepY.grid(column=4, row=3, padx=10, pady=5)
         
-        self.move_y_to_button = tk.Button(y_frame, text="Move To [um]", command=lambda: threading.Thread(target=self.move_y_to).start())
+        for i, entry in enumerate([self.ASC_MoveX, self.ASC_MoveY, self.ASC_StepX, self.ASC_StepY]):
+            if i<2:
+                entry.insert(0, "20")
+            else:
+                entry.insert(0, "0.5")
+        
+        #Buttons to set movements
+        ASC_Button_MoveX = ttk.Button(master=ASC_frame, text="\u2713", style="Std.TButton", command= lambda: threading.Thread(target=self.move_x_to).start())
+        ASC_Button_MoveY = ttk.Button(master=ASC_frame, text="\u2713", style="Std.TButton", command= lambda: threading.Thread(target=self.move_y_to).start())
+        ASC_X_smaller = ttk.Button(master=ASC_frame, text="\u2BC7", style="Std.TButton", command= lambda: threading.Thread(target=self.move_x_down).start())
+        ASC_X_larger = ttk.Button(master=ASC_frame, text="\u2BC8", style="Std.TButton", command= lambda: threading.Thread(target=self.move_x_up).start())
+        ASC_Y_smaller = ttk.Button(master=ASC_frame, text="\u2BC7", style="Std.TButton", command= lambda: threading.Thread(target=self.move_y_down).start())
+        ASC_Y_larger = ttk.Button(master=ASC_frame, text="\u2BC8", style="Std.TButton", command=lambda: threading.Thread(target=self.move_y_up).start())
+        ASC_Button_MoveX.grid(column=3,row=2)
+        ASC_Button_MoveY.grid(column=3,row=3)
+        ASC_X_smaller.grid(column=5, row=2)
+        ASC_X_larger.grid(column=6, row=2)
+        ASC_Y_smaller.grid(column=5, row=3)
+        ASC_Y_larger.grid(column=6, row=3)
+        
+        #Title labels
+        label = ttk.Label(master=ANC_frame, text="Step [V]", style="Std.TLabel", width=12)
+        label1 = ttk.Label(master=ANC_frame, text="Move To [V]", style="Std.TLabel", width=12)
+        label2 = ttk.Label(master=ANC_frame, text="Position [V]", style="Std.TLabel", width=12, anchor="center")
+        label3 = ttk.Label(master=ANC_frame, text="X", style="Std.TLabel", padding=[10,0])
+        label4 = ttk.Label(master=ANC_frame, text="Y", style="Std.TLabel", padding=[10,0])
+        label5 = ttk.Label(master=ANC_frame, text="Z", style="Std.TLabel", padding=[10,0])
+        label.grid(column=4, row=1, padx=10, pady=5)
+        label1.grid(column=2, row=1, padx=10, pady=5)
+        label2.grid(column=1, row=1, padx=10, pady=5)
+        label3.grid(column=0, row=2, padx=10, pady=5)
+        label4.grid(column=0, row=3, padx=10, pady=5)
+        label5.grid(column=0, row=4, padx=10, pady=5)
 
-        self.move_y_to_button.grid(row=4, column=1)
-        
-        # self.home_y_button = tk.Button(y_frame, text="Home", command=self.home_y)
-        # self.home_y_button.grid(row=5, column=0, columnspan=2)
-        
-        self.up_button = tk.Button(y_frame, text="\u25B6", command=lambda: threading.Thread(target=self.move_y_up).start())
 
-        self.up_button.grid(row=0, column=1)
-        
-        self.down_button = tk.Button(y_frame, text="\u25C0", command=lambda: threading.Thread(target=self.move_y_down).start())
+        #Dynamic position labels
+        PosX_var = tk.StringVar()
+        PosY_var = tk.StringVar()
+        PosZ_var = tk.StringVar()
 
-        self.down_button.grid(row=0, column=0)
+        self.ANC_dynamiclabels = [PosX_var, PosY_var, PosZ_var]
+        for i in range(3):
+            self.ANC_dynamiclabels[i].set(f"{self.ANC.get_output(i+1, Print=False)} V")
+
+        PosX = ttk.Label(master=ANC_frame, textvar=PosX_var, style="Txt.TLabel", width=12, anchor="center")
+        PosY = ttk.Label(master=ANC_frame, textvar=PosY_var, style="Txt.TLabel", width=12, anchor="center")
+        PosZ = ttk.Label(master=ANC_frame, textvar=PosZ_var, style="Txt.TLabel", width=12, anchor="center")
+        PosX.grid(column=1, row=2, padx=10, pady=5)
+        PosY.grid(column=1, row=3, padx=10, pady=5)
+        PosZ.grid(column=1, row=4, padx=10, pady=5)
+
+        #User entries for movement
+        MoveX = ttk.Entry(master=ANC_frame, width=12)
+        MoveY = ttk.Entry(master=ANC_frame, width=12)
+        MoveZ = ttk.Entry(master=ANC_frame, width=12)
+        StepX = ttk.Entry(master=ANC_frame, width=12)
+        StepY = ttk.Entry(master=ANC_frame, width=12)
+        StepZ = ttk.Entry(master=ANC_frame, width=12)
+        MoveX.grid(column=2, row=2, padx=10, pady=5)
+        MoveY.grid(column=2, row=3, padx=10, pady=5)
+        MoveZ.grid(column=2, row=4, padx=10, pady=5)
+        StepX.grid(column=4, row=2, padx=10, pady=5)
+        StepY.grid(column=4, row=3, padx=10, pady=5)
+        StepZ.grid(column=4, row=4, padx=10, pady=5)
+        self.Moves = [MoveX, MoveY, MoveZ]           
+        self.Steps = [StepX, StepY, StepZ]
         
-        # Z-axis frame
-        z_frame = tk.Frame(self)
-        z_frame.grid(row=1, column=1, padx=20, pady=10, sticky="nsew")
-        z_frame.config(width=200, height=200) # Adjust width and height for aesthetic purposes
-        
-        # The Z-frame is used only as a separator, no widgets needed inside it
-        
+        for entry in self.Moves:
+            entry.insert(0, "20")
+        for entry in self.Steps:
+            entry.insert(0, "0.5")
+            
+        #Buttons to set movements
+        Button_MoveX = ttk.Button(master=ANC_frame, text="\u2713", style="Std.TButton", command= lambda:self.ANC_set_move(1))
+        Button_MoveY = ttk.Button(master=ANC_frame, text="\u2713", style="Std.TButton", command= lambda:self.ANC_set_move(2))
+        Button_MoveZ = ttk.Button(master=ANC_frame, text="\u2713", style="Std.TButton", command= lambda:self.ANC_set_move(3))
+        X_smaller = ttk.Button(master=ANC_frame, text="\u2BC7", style="Std.TButton", command= lambda:self.ANC_set_step(1,-1))
+        X_larger = ttk.Button(master=ANC_frame, text="\u2BC8", style="Std.TButton", command= lambda:self.ANC_set_step(1,1))
+        Y_smaller = ttk.Button(master=ANC_frame, text="\u2BC7", style="Std.TButton", command= lambda:self.ANC_set_step(2,-1))
+        Y_larger = ttk.Button(master=ANC_frame, text="\u2BC8", style="Std.TButton", command=lambda:self.ANC_set_step(2,1))
+        Z_smaller = ttk.Button(master=ANC_frame, text="\u2BC7", style="Std.TButton", command=lambda:self.ANC_set_step(3,-1))
+        Z_larger = ttk.Button(master=ANC_frame, text="\u2BC8", style="Std.TButton", command=lambda:self.ANC_set_step(3,1))
+        Button_MoveX.grid(column=3,row=2)
+        Button_MoveY.grid(column=3,row=3)
+        Button_MoveZ.grid(column=3,row=4)
+        X_smaller.grid(column=5, row=2)
+        X_larger.grid(column=6, row=2)
+        Y_smaller.grid(column=5, row=3)
+        Y_larger.grid(column=6, row=3)
+        Z_smaller.grid(column=5, row=4)
+        Z_larger.grid(column=6, row=4)
 
         self.iterator = 0 
-
         self.periodic_position_update()
         
-        
-    
-    
-
      
     def get_xy_position(self):
         
@@ -236,62 +316,63 @@ class AscStageApp(ttk.Frame):
         #print("done moving!")
 
     def move_x_to(self, val=None):
-        if val is None:
-            try:
-                pos =self.asc500.scanner.getPositionsXYRel()
-                y_const=pos[1]
-               # x_const= curr_pos[0]
-                val = round(abs(float(self.entry_x_to.get())*1e-6), 10) #nm convert
-                #tgt_x=abs(x_const+val)
-                tgt =[val , y_const]
-                
-                if (0 <= val < self.X_Travel_lim ):
-                    
-                    self.asc500.scanner.setPositionsXYRel(tgt,pos)
-                    time.sleep(0.0005)
-                    while (abs(pos[0] - val) > 0.001e-6):
-                        pos = self.asc500.scanner.getPositionsXYRel()
-                        with self.currPos_lock:
-                            
-                            self.currPos = pos
-                        time.sleep(0.005)
-                    
-                    
-                else:
-                    print(f'Xtarget limit= {self.X_Travel_lim}, exceeded!')
-                    pass
-            except ValueError:
-                
-                pass
-        else:
-            try:
-                b=time.time()
-                pos =self.asc500.scanner.getPositionsXYRel()
-                y_const=pos[1]
+         if val is None:
+             try:
+                 pos =self.asc500.scanner.getPositionsXYRel()
+                 y_const=pos[1]
                 # x_const= curr_pos[0]
-                val = round(abs(float(val)), 10) #mm convert
-                #tgt_x=abs(x_const+val)
-                tgt = [val , y_const]
-                #print(f'MyxTarget: {tgt}')
-                if (0 <= val < self.X_Travel_lim ):
-                    self.asc500.scanner.setPositionsXYRel(tgt,pos)
-                    time.sleep(0.0005)
-                    while (abs(pos[0] - val) > 0.001e-6):
-                        pos = self.asc500.scanner.getPositionsXYRel()
-                        with self.currPos_lock:
-                            self.currPos = pos
-                        #print(f'while_x: {pos}')
-                        time.sleep(0.005)
-                   
+                 val = round(abs(float(self.ASC_MoveX.get())*1e-6), 10) #nm convert
+                 #tgt_x=abs(x_const+val)
+                 tgt =[val , y_const]
+                 
+                 if (0 <= val < self.X_Travel_lim ):
+                     
+                     self.asc500.scanner.setPositionsXYRel(tgt,pos)
+                     time.sleep(0.0005)
+                     while (abs(pos[0] - val) > 0.001e-6):
+                         pos = self.asc500.scanner.getPositionsXYRel()
+                         with self.currPos_lock:
+                             
+                             self.currPos = pos
+                         time.sleep(0.005)
+                     
+                     
+                 else:
+                     print(f'Xtarget limit= {self.X_Travel_lim}, exceeded!')
+                     pass
+             except ValueError:
+                 
+                 pass
+         else:
+             try:
+                 b=time.time()
+                 pos =self.asc500.scanner.getPositionsXYRel()
+                 y_const=pos[1]
+                 # x_const= curr_pos[0]
+                 val = round(abs(float(val)), 10) #mm convert
+                 #tgt_x=abs(x_const+val)
+                 tgt = [val , y_const]
+                 #print(f'MyxTarget: {tgt}')
+                 if (0 <= val < self.X_Travel_lim ):
+                     self.asc500.scanner.setPositionsXYRel(tgt,pos)
+                     time.sleep(0.0005)
+                     while (abs(pos[0] - val) > 0.001e-6):
+                         pos = self.asc500.scanner.getPositionsXYRel()
+                         with self.currPos_lock:
+                             self.currPos = pos
+                         #print(f'while_x: {pos}')
+                         time.sleep(0.005)
                     
-        
-                else:
-                    print(f'Xtarget limit = {self.X_Travel_lim}, exceeded!')
-                    pass
-                e=time.time()
-                print(f'move_x_to time passed= {e- b}')
-            except ValueError:
-                pass
+                     
+         
+                 else:
+                     print(f'Xtarget limit = {self.X_Travel_lim}, exceeded!')
+                     pass
+                 e=time.time()
+                 print(f'move_x_to time passed= {e- b}')
+             except ValueError:
+                 pass
+
 
 
     def move_y_to(self, val=None):
@@ -300,7 +381,7 @@ class AscStageApp(ttk.Frame):
                 pos =self.asc500.scanner.getPositionsXYRel()
                 y_const=pos[1]
                 x_const= pos[0]
-                val = round(abs(float(self.entry_y_to.get())*1e-6), 10) #mm convert
+                val = round(abs(float(self.ASC_MoveY.get())*1e-6), 10) #mm convert
                 #tgt_y=abs(y_const+val)
                 tgt =[x_const, val]
                 if (0 <= val < self.Y_Travel_lim ):
@@ -339,9 +420,7 @@ class AscStageApp(ttk.Frame):
                             self.currPos = pos
                         #print(f'while_y2: {pos}')
                         time.sleep(0.005)
-                
-                    
-
+                        
                 else:
                     print(f'Ytarget limit = {self.Y_Travel_lim}, exceeded!')
                     pass
@@ -349,16 +428,16 @@ class AscStageApp(ttk.Frame):
                 print(f'move_y_to time passed= {e- b}')
             except ValueError:
                 pass
-
            
+    # X-button actions
     # X-button actions
     def move_x_up(self):
         pos =self.asc500.scanner.getPositionsXYRel()
-    
+
         #print(curr_pos)
         x_const= pos[0]
         y_const= pos[1]
-        val = round(abs(float(self.entry_x.get())*1e-6), 10) #nm convert
+        val = round(abs(float(self.ASC_StepX.get())*1e-6), 10) #nm convert
         #print(val)
         tgt_x=abs(x_const+val)
         print(f'my target val: {tgt_x}')
@@ -379,14 +458,12 @@ class AscStageApp(ttk.Frame):
             pass
 
                
-       
-        
     def move_x_down(self):
          pos = self.asc500.scanner.getPositionsXYRel()
          print(pos)
          x_const= pos[0]
          y_const= pos[1]
-         val = round(-abs(float(self.entry_x.get())*1e-6), 10) #nm convert
+         val = round(-abs(float(self.ASC_StepX.get())*1e-6), 10) #nm convert
          print(val)
          tgt_x=abs(x_const+val)
          tgt=[tgt_x,y_const]
@@ -411,7 +488,7 @@ class AscStageApp(ttk.Frame):
       
          x_const= pos[0]
          y_const= pos[1]
-         val = round(abs(float(self.entry_y.get())*1e-6), 10) #nm convert
+         val = round(abs(float(self.ASC_StepY.get())*1e-6), 10) #nm convert
          print(val)
          tgt_y=abs(y_const+val)
          tgt=[x_const, tgt_y]
@@ -436,7 +513,7 @@ class AscStageApp(ttk.Frame):
 
          x_const= pos[0]
          y_const= pos[1]
-         val = round(-abs(float(self.entry_y.get())*1e-6), 10) #nm convert
+         val = round(-abs(float(self.ASC_StepY.get())*1e-6), 10) #nm convert
          tgt_y=abs(y_const+val)
          tgt=[x_const, tgt_y]
          if (0 <= tgt_y < self.Y_Travel_lim ):
@@ -494,7 +571,6 @@ class AscStageApp(ttk.Frame):
             pass
         e=time.time()
         print(f'move_y time passed= {e- b}')
-     
 
         
     def close(self):
@@ -508,24 +584,25 @@ class AscStageApp(ttk.Frame):
 
             
     def periodic_position_update(self):
-     if not self.closed:
+        if not self.closed:
          
-         with self.currPos_lock:
-            
-             self.x_pos = round(self.currPos[0] / 1e-6, 3)
-             self.y_pos = round(self.currPos[1] / 1e-6, 3)
-             #print(f'curr_upd: {self.currPos}')
+            with self.currPos_lock:
+               
+                self.x_pos = round(self.currPos[0] / 1e-6, 3)
+                self.y_pos = round(self.currPos[1] / 1e-6, 3)
+                #print(f'curr_upd: {self.currPos}')
+                
+                for i in range(2):
+                    self.ASC_dynamiclabels[i].set(f"{round(self.currPos[i]/1e-6,3)} um")
       
-             self.label_x.config(text=f"X: {self.x_pos:0.3f}")
-             self.label_y.config(text=f"Y: {self.y_pos:0.3f}")
-
-         self.after(100, self.periodic_position_update)
-
-             
-            
-if __name__ == "__main__":
-    root = tk.Tk()
-    app = AscStageApp(root)
-    app.grid()
-    root.protocol("WM_DELETE_WINDOW", app.on_close)
-    root.mainloop()  
+            self.after(100, self.periodic_position_update)
+         
+    def ANC_set_move(self, axis): 
+        pos = float(self.Moves[axis-1].get())
+        self.ANC.ramp(axis, pos)
+        self.ANC_dynamiclabels[axis-1].set(f"{self.ANC.get_output(axis, Print=False)} V")
+        
+    def ANC_set_step(self,axis, direction): 
+        step = abs(float(self.Steps[axis-1].get()))*direction
+        self.ANC.step(axis, step)
+        self.ANC_dynamiclabels[axis-1].set(f"{self.ANC.get_output(axis, Print=False)} V")
