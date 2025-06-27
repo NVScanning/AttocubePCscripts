@@ -140,7 +140,7 @@ class ODMRModule:
                         align()
                         # Play the mw pulse...
                         play("laser_ON", "AOM1", duration=self.readout_len * u.ns)
-                        play("cw" * amp(1), "NV", duration=self.readout_len * u.ns)
+                        play("cw" * amp(0.1), "NV", duration=self.readout_len * u.ns)
                         # ... and the laser pulse simultaneously (the laser pulse is delayed by 'laser_delay_1')
                         #play("laser_ON", "AOM1", duration=self.readout_len * u.ns)
                         wait(1_000 * u.ns, "SPCM1")  # so readout don't catch the first part of spin reinitialization
@@ -320,90 +320,93 @@ class ODMRModule:
 
 
 
-    def get_data(self,f_idx):
-        
+    def get_data(self, f_idx):
         try:
             self.job.resume()
-                # Wait until the program reaches the 'pause' statement again, indicating that the QUA program is done
-            while not job.is_paused() and job.status == 'running':
+            # Wait until the program reaches the 'pause' statement again, indicating that the QUA program is done
+            while not self.job.is_paused() and self.job.status == 'running':
                 time.sleep(0.1)
-        
-        except:
-            pass
-        
+        except Exception as e:
+            print(f"[ERROR] Could not resume job: {e}")
+            return
         if f_idx == 0:
             self.res_handles = self.job.result_handles
             self.counts_handle = self.res_handles.get("counts")
             self.iteration_handle = self.res_handles.get("iteration")
-        
-        print("in get data")
-        self.iteration_handle.wait_for_values(1)
-        print(f'state:{self.state}')
-        
-        self.iteration_sum=0
-        self.counts_sum = np.zeros(np.shape(self.f_vec))
-        self.fitted_y_data= np.zeros(np.shape(self.f_vec))
-        self.y_data=np.zeros(np.shape(self.f_vec))
-                      
-        #print('wa')
+        # print("in get data")
+        # self.iteration_handle.wait_for_values(1)
+        # print(f'state:{self.state}')
+        # self.iteration_sum=0
+        # self.counts_sum = np.zeros(np.shape(self.f_vec))
+        # self.fitted_y_data= np.zeros(np.shape(self.f_vec))
+        # self.y_data=np.zeros(np.shape(self.f_vec))
+        # print('wa')
         self.counts_handle.wait_for_values(1)
         self.iteration_handle.wait_for_values(1)
-        #print('it')
-
-        new_counts = self.counts_handle.fetch_all() #add something to check size of fetched array
-        
+        # print('it')
+        new_counts = self.counts_handle.fetch_all()  # add something to check size of fetched array
         while np.shape(new_counts)[0] != f_idx + 1 and type(self.job) != type(None):
             print('waiting for counts')
             time.sleep(0.1)
             new_counts = self.counts_handle.fetch_all()
-        
         counts = new_counts["value"][-1]
-        
-        self.x_data = (NV_LO_freq + self.f_vec) / u.MHz # x axis [frequencies]
-        #self.x_data = (NV_LO_freq + self.f_vec*u.MHz) / u.GHz
-        # self.y_data = self.generate_fake_data( self.x_data, self.fit_type) 
-        self.y_data = (counts / 1000 / (self.readout_len * 1e-9)) # counts( [frequencies])
-        #print(f"y_data: {self.y_data}")
+        self.x_data = (NV_LO_freq + self.f_vec) / u.MHz  # x axis [frequencies]
+        # self.x_data = (NV_LO_freq + self.f_vec*u.MHz) / u.GHz
+        self.y_data = self.generate_fake_data(self.x_data, self.fit_type)
+        # self.y_data = (counts / 1000 / (self.readout_len * 1e-9))  # counts( [frequencies])
+        # print(f"y_data: {self.y_data}")
         # print(f"fitted_y: {self.fitted_y_data}")
-        popt, fitted = self.fit_lorentzian(self.x_data, self.y_data, self.fit_type)
-        self.fitted_y_data = fitted
-
-        center_freq = popt[0]
-        fwhm = 2 * popt[2]
-        contrast = (np.max(self.fitted_y_data) - np.min(self.fitted_y_data)) / np.max(self.fitted_y_data)
-        I0 = np.max(self.y_data)
-        h = 6.62607015e-34  # Planck's constant
-        g = 2.00231930436256  # g-factor for electron
-        mu_B = 9.2740100783e-24  # Bohr magneton
-
-        sensitivity = (h * fwhm) / (g * mu_B * contrast * np.sqrt(I0))
-        elapsed_time = time.time() - self.job_start_time
-        
-        z_out = self.z_control.getPositionZ()
+        # Read AFM position and height
+       
         pos_out = self.scannerpos.getPositionsXYRel()
+        z_out = self.z_control.getPositionZ()
+        
+        self.data_dict = {
+            'x [um]': pos_out[0] * 1e6,
+            'y [um]': pos_out[1] * 1e6,
+            'AFM height [um]': z_out * 1e6,
+            'x_data': self.x_data,
+            'y_data': self.y_data,
+            'fit_status': 'pending'
+        }
+        
 
+    def start_fitting_thread(self):
+        threading.Thread(target=self.run_fitting, daemon=True).start() 
+   
+    def run_fitting(self):
+        try:
+            popt, fitted = self.fit_lorentzian(self.x_data, self.y_data, self.fit_type)
+            fit_status = 'ok'
+        except Exception as e:
+            print(f"[WARNING] Fit failed: {e}")
+            fitted = np.full_like(self.y_data, np.mean(self.y_data))
+            popt = [-1, -1, -1, np.mean(self.y_data)]
+            fit_status = 'failed'
+        self.fitted_y_data = fitted
+        h = 6.62607015e-34
+        g = 2.00231930436256
+        mu_B = 9.2740100783e-24
+        try:
+            center_freq = popt[0]
+            fwhm = 2 * popt[2]
+            contrast = (np.max(fitted) - np.min(fitted)) / np.max(fitted)
+            I0 = np.max(self.y_data)
+            sensitivity = (h * fwhm) / (g * mu_B * contrast * np.sqrt(I0))
+        except:
+            center_freq = fwhm = contrast = sensitivity = -1
+        elapsed = time.time() - self.job_start_time
+        count_mean = np.mean(self.y_data)
         self.data_dict.update({
-            'x [um]': pos_out[0]*1E6,
-            'y [um]': pos_out[1]*1E6,
-            'AFM height [um]': z_out*1E6,
-            'counts [kc/s]': np.mean(self.y_data),
+            'fitted_y_data': self.fitted_y_data,
+            'counts [kc/s]': count_mean,
             'freq_center': center_freq,
             'fwhm': fwhm,
             'contrast': contrast,
             'sensitivity': sensitivity,
-            'time_elapsed': elapsed_time,
-            'x_data': self.x_data,
-            'y_data': self.y_data,
-            'fitted_y_data': self.fitted_y_data
+            'time_elapsed': elapsed,
+            'fit_status': fit_status
         })
-        #print(f'data dict: {self.data_dict}')
-        
-        #self.counts_old = counts
-        #print(f'fit_time: {fit_time}')
-        print("done!")
-     
-   
-
 
     def generate_fake_data(self, x_data, fit_type, center_freq=2875, noise_level=0.01):
         """

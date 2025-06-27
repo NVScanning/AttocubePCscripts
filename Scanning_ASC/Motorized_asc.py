@@ -71,7 +71,13 @@ class AscStageApp(ttk.Frame):
         
         host = "192.168.10.2" #ANC 300 IP
         port = 7230 #standard console port
-        self.ANC = ANC300App(host, port) #connect to machine
+        
+        try:
+            self.ANC = ANC300App(host, port) #connect to machine
+            self.ANC_connected = True
+        except:
+            self.ANC_connected = False
+            
         
         style = ttk.Style()
         style.theme_use("vista")
@@ -108,13 +114,7 @@ class AscStageApp(ttk.Frame):
         ASC_frame.grid_columnconfigure(0, weight=1)
         ASC_title = ttk.Label(master=ASC_frame, text="Sample motors", font=("Helvetica",12))
         ASC_title.grid(row=0, columnspan=7, padx=10, pady=(0,5))
-        
-        #create frame for ANC
-        ANC_frame = tk.Frame(self, highlightbackground="#99b3e6", highlightthickness=1, padx=20, pady=5)
-        ANC_frame.grid(row=1, column=0, ipady=5)
-        ANC_title = ttk.Label(master=ANC_frame, text="Tip motors", font=("Helvetica",12))
-        ANC_title.grid(row=0, columnspan=7, padx=10)
-        
+
                 
         #Labels
         ASC_label = ttk.Label(master=ASC_frame, text="Step [um]", style="Std.TLabel", width=12)
@@ -170,79 +170,90 @@ class AscStageApp(ttk.Frame):
         ASC_Y_smaller.grid(column=5, row=3)
         ASC_Y_larger.grid(column=6, row=3)
         
-        #Title labels
-        label = ttk.Label(master=ANC_frame, text="Step [V]", style="Std.TLabel", width=12)
-        label1 = ttk.Label(master=ANC_frame, text="Move To [V]", style="Std.TLabel", width=12)
-        label2 = ttk.Label(master=ANC_frame, text="Position [V]", style="Std.TLabel", width=12, anchor="center")
-        label3 = ttk.Label(master=ANC_frame, text="X", style="Std.TLabel", padding=[10,0])
-        label4 = ttk.Label(master=ANC_frame, text="Y", style="Std.TLabel", padding=[10,0])
-        label5 = ttk.Label(master=ANC_frame, text="Z", style="Std.TLabel", padding=[10,0])
-        label.grid(column=4, row=1, padx=10, pady=5)
-        label1.grid(column=2, row=1, padx=10, pady=5)
-        label2.grid(column=1, row=1, padx=10, pady=5)
-        label3.grid(column=0, row=2, padx=10, pady=5)
-        label4.grid(column=0, row=3, padx=10, pady=5)
-        label5.grid(column=0, row=4, padx=10, pady=5)
-
-
-        #Dynamic position labels
-        PosX_var = tk.StringVar()
-        PosY_var = tk.StringVar()
-        PosZ_var = tk.StringVar()
-
-        self.ANC_dynamiclabels = [PosX_var, PosY_var, PosZ_var]
-        for i in range(3):
-            self.ANC_dynamiclabels[i].set(f"{self.ANC.get_output(i+1, Print=False)} V")
-
-        PosX = ttk.Label(master=ANC_frame, textvar=PosX_var, style="Txt.TLabel", width=12, anchor="center")
-        PosY = ttk.Label(master=ANC_frame, textvar=PosY_var, style="Txt.TLabel", width=12, anchor="center")
-        PosZ = ttk.Label(master=ANC_frame, textvar=PosZ_var, style="Txt.TLabel", width=12, anchor="center")
-        PosX.grid(column=1, row=2, padx=10, pady=5)
-        PosY.grid(column=1, row=3, padx=10, pady=5)
-        PosZ.grid(column=1, row=4, padx=10, pady=5)
-
-        #User entries for movement
-        MoveX = ttk.Entry(master=ANC_frame, width=12)
-        MoveY = ttk.Entry(master=ANC_frame, width=12)
-        MoveZ = ttk.Entry(master=ANC_frame, width=12)
-        StepX = ttk.Entry(master=ANC_frame, width=12)
-        StepY = ttk.Entry(master=ANC_frame, width=12)
-        StepZ = ttk.Entry(master=ANC_frame, width=12)
-        MoveX.grid(column=2, row=2, padx=10, pady=5)
-        MoveY.grid(column=2, row=3, padx=10, pady=5)
-        MoveZ.grid(column=2, row=4, padx=10, pady=5)
-        StepX.grid(column=4, row=2, padx=10, pady=5)
-        StepY.grid(column=4, row=3, padx=10, pady=5)
-        StepZ.grid(column=4, row=4, padx=10, pady=5)
-        self.Moves = [MoveX, MoveY, MoveZ]           
-        self.Steps = [StepX, StepY, StepZ]
+        #create frame for ANC
+        ANC_frame = tk.Frame(self, highlightbackground="#99b3e6", highlightthickness=1, padx=20, pady=5)
+        ANC_frame.grid(row=1, column=0, ipady=5)
         
-        for entry in self.Moves:
-            entry.insert(0, "20")
-        for entry in self.Steps:
-            entry.insert(0, "0.5")
+        if self.ANC_connected == True:
+            ANC_title = ttk.Label(master=ANC_frame, text="Tip motors", font=("Helvetica",12))
+            ANC_title.grid(row=0, columnspan=7, padx=10)
             
-        #Buttons to set movements
-        Button_MoveX = ttk.Button(master=ANC_frame, text="\u2713", style="Std.TButton", command= lambda: threading.Thread(target=self.ANC_set_move, args=[1]).start())
-        Button_MoveY = ttk.Button(master=ANC_frame, text="\u2713", style="Std.TButton", command= lambda: threading.Thread(target=self.ANC_set_move, args=[2]).start())
-        Button_MoveZ = ttk.Button(master=ANC_frame, text="\u2713", style="Std.TButton", command= lambda: threading.Thread(target=self.ANC_set_move, args=[3]).start())
-        X_smaller = ttk.Button(master=ANC_frame, text="\u2BC7", style="Std.TButton", command= lambda: threading.Thread(target=self.ANC_set_step(1,-1)).start())
-        X_larger = ttk.Button(master=ANC_frame, text="\u2BC8", style="Std.TButton", command= lambda: threading.Thread(target=self.ANC_set_step(1,1)).start())
-        Y_smaller = ttk.Button(master=ANC_frame, text="\u2BC7", style="Std.TButton", command= lambda: threading.Thread(target=self.ANC_set_step(2,-1)).start())
-        Y_larger = ttk.Button(master=ANC_frame, text="\u2BC8", style="Std.TButton", command=lambda: threading.Thread(target= self.ANC_set_step(2,1)).start())
-        Z_smaller = ttk.Button(master=ANC_frame, text="\u2BC7", style="Std.TButton", command=lambda: threading.Thread(target=self.ANC_set_step(3,-1)).start())
-        Z_larger = ttk.Button(master=ANC_frame, text="\u2BC8", style="Std.TButton", command=lambda: threading.Thread(target=self.ANC_set_step(3,1)).start())
-        Button_abort = ttk.Button(master=ANC_frame, text="Abort move", style = 'Std.TButton', width=10, command=self.ANC_abort_move)
-        Button_MoveX.grid(column=3,row=2)
-        Button_MoveY.grid(column=3,row=3)
-        Button_MoveZ.grid(column=3,row=4)
-        X_smaller.grid(column=5, row=2)
-        X_larger.grid(column=6, row=2)
-        Y_smaller.grid(column=5, row=3)
-        Y_larger.grid(column=6, row=3)
-        Z_smaller.grid(column=5, row=4)
-        Z_larger.grid(column=6, row=4)
-        Button_abort.grid(column=7, row=3, padx=10)
+            #Title labels
+            label = ttk.Label(master=ANC_frame, text="Step [V]", style="Std.TLabel", width=12)
+            label1 = ttk.Label(master=ANC_frame, text="Move To [V]", style="Std.TLabel", width=12)
+            label2 = ttk.Label(master=ANC_frame, text="Position [V]", style="Std.TLabel", width=12, anchor="center")
+            label3 = ttk.Label(master=ANC_frame, text="X", style="Std.TLabel", padding=[10,0])
+            label4 = ttk.Label(master=ANC_frame, text="Y", style="Std.TLabel", padding=[10,0])
+            label5 = ttk.Label(master=ANC_frame, text="Z", style="Std.TLabel", padding=[10,0])
+            label.grid(column=4, row=1, padx=10, pady=5)
+            label1.grid(column=2, row=1, padx=10, pady=5)
+            label2.grid(column=1, row=1, padx=10, pady=5)
+            label3.grid(column=0, row=2, padx=10, pady=5)
+            label4.grid(column=0, row=3, padx=10, pady=5)
+            label5.grid(column=0, row=4, padx=10, pady=5)
+
+            #Dynamic position labels
+            PosX_var = tk.StringVar()
+            PosY_var = tk.StringVar()
+            PosZ_var = tk.StringVar()
+    
+            self.ANC_dynamiclabels = [PosX_var, PosY_var, PosZ_var]
+            for i in range(3):
+                self.ANC_dynamiclabels[i].set(f"{self.ANC.get_output(i+1, Print=False)} V")
+    
+            PosX = ttk.Label(master=ANC_frame, textvar=PosX_var, style="Txt.TLabel", width=12, anchor="center")
+            PosY = ttk.Label(master=ANC_frame, textvar=PosY_var, style="Txt.TLabel", width=12, anchor="center")
+            PosZ = ttk.Label(master=ANC_frame, textvar=PosZ_var, style="Txt.TLabel", width=12, anchor="center")
+            PosX.grid(column=1, row=2, padx=10, pady=5)
+            PosY.grid(column=1, row=3, padx=10, pady=5)
+            PosZ.grid(column=1, row=4, padx=10, pady=5)
+    
+            #User entries for movement
+            MoveX = ttk.Entry(master=ANC_frame, width=12)
+            MoveY = ttk.Entry(master=ANC_frame, width=12)
+            MoveZ = ttk.Entry(master=ANC_frame, width=12)
+            StepX = ttk.Entry(master=ANC_frame, width=12)
+            StepY = ttk.Entry(master=ANC_frame, width=12)
+            StepZ = ttk.Entry(master=ANC_frame, width=12)
+            MoveX.grid(column=2, row=2, padx=10, pady=5)
+            MoveY.grid(column=2, row=3, padx=10, pady=5)
+            MoveZ.grid(column=2, row=4, padx=10, pady=5)
+            StepX.grid(column=4, row=2, padx=10, pady=5)
+            StepY.grid(column=4, row=3, padx=10, pady=5)
+            StepZ.grid(column=4, row=4, padx=10, pady=5)
+            self.Moves = [MoveX, MoveY, MoveZ]           
+            self.Steps = [StepX, StepY, StepZ]
+            
+            for entry in self.Moves:
+                entry.insert(0, "20")
+            for entry in self.Steps:
+                entry.insert(0, "0.5")
+                
+            #Buttons to set movements
+            Button_MoveX = ttk.Button(master=ANC_frame, text="\u2713", style="Std.TButton", command= lambda: threading.Thread(target=self.ANC_set_move, args=[1]).start())
+            Button_MoveY = ttk.Button(master=ANC_frame, text="\u2713", style="Std.TButton", command= lambda: threading.Thread(target=self.ANC_set_move, args=[2]).start())
+            Button_MoveZ = ttk.Button(master=ANC_frame, text="\u2713", style="Std.TButton", command= lambda: threading.Thread(target=self.ANC_set_move, args=[3]).start())
+            X_smaller = ttk.Button(master=ANC_frame, text="\u2BC7", style="Std.TButton", command= lambda: threading.Thread(target=self.ANC_set_step(1,-1)).start())
+            X_larger = ttk.Button(master=ANC_frame, text="\u2BC8", style="Std.TButton", command= lambda: threading.Thread(target=self.ANC_set_step(1,1)).start())
+            Y_smaller = ttk.Button(master=ANC_frame, text="\u2BC7", style="Std.TButton", command= lambda: threading.Thread(target=self.ANC_set_step(2,-1)).start())
+            Y_larger = ttk.Button(master=ANC_frame, text="\u2BC8", style="Std.TButton", command=lambda: threading.Thread(target= self.ANC_set_step(2,1)).start())
+            Z_smaller = ttk.Button(master=ANC_frame, text="\u2BC7", style="Std.TButton", command=lambda: threading.Thread(target=self.ANC_set_step(3,-1)).start())
+            Z_larger = ttk.Button(master=ANC_frame, text="\u2BC8", style="Std.TButton", command=lambda: threading.Thread(target=self.ANC_set_step(3,1)).start())
+            Button_abort = ttk.Button(master=ANC_frame, text="Abort move", style = 'Std.TButton', width=10, command=self.ANC_abort_move)
+            Button_MoveX.grid(column=3,row=2)
+            Button_MoveY.grid(column=3,row=3)
+            Button_MoveZ.grid(column=3,row=4)
+            X_smaller.grid(column=5, row=2)
+            X_larger.grid(column=6, row=2)
+            Y_smaller.grid(column=5, row=3)
+            Y_larger.grid(column=6, row=3)
+            Z_smaller.grid(column=5, row=4)
+            Z_larger.grid(column=6, row=4)
+            Button_abort.grid(column=7, row=3, padx=10)
+            
+        else:
+            ANC_title = ttk.Label(master=ANC_frame, text="ANC not connected", font=("Helvetica",12))
+            ANC_title.grid(row=0, columnspan=7, padx=10)
 
         self.iterator = 0 
         self.periodic_position_update()
@@ -597,9 +608,11 @@ class AscStageApp(ttk.Frame):
                 for i in range(2):
                     self.ASC_dynamiclabels[i].set(f"{round(self.currPos[i]/1e-6,3)} um")
                     
-                if not self.ANC.moving:
-                    for i in range(3):
-                        self.ANC_dynamiclabels[i].set(f"{self.ANC.get_output(i+1, Print=False)} V")
+                if self.ANC_connected == True:
+                    
+                    if not self.ANC.moving:
+                        for i in range(3):
+                            self.ANC_dynamiclabels[i].set(f"{self.ANC.get_output(i+1, Print=False)} V")
       
             self.after(1000, self.periodic_position_update)
          

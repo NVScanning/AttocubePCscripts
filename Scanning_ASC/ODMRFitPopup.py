@@ -135,7 +135,7 @@ class ODMRFitPopup(tk.Toplevel):
         #self.odmr_module.fetch_data()
         self.odmr_module.start_fetching()
         
-        threading.Thread(target=self.odmr_module.get_data(0), daemon=True).start()
+        threading.Thread(target=self.run_odmr_acq, daemon=True).start()
         
 
         b = time.time()
@@ -176,7 +176,12 @@ class ODMRFitPopup(tk.Toplevel):
        
         
        
-
+    def run_odmr_acq(self):
+        start = time.time()
+        self.odmr_module.get_data(0)  # Only fetches raw x_data, y_data
+        self.odmr_module.start_fitting_thread()  # Triggers fit in background
+        end = time.time()
+        print(f"ODMR acquisition + fit  time is {end - start:.3f} s")
 
         
 
@@ -192,29 +197,27 @@ class ODMRFitPopup(tk.Toplevel):
     def update_plot(self):
         print('hello')
         print(f'State: {self.odmr_module.state}')
-        while self.odmr_module.state == "fetching":
-            with data_lock:
-                #data = self.odmr_module.data_dict
-                self.y_data = self.odmr_module.y_data
-                self.x_data =  self.odmr_module.x_data
-                self.fitted_y = self.odmr_module.fitted_y_data
-    
-           # Update the graph data
-            self.graph.set_data(self.x_data, self.y_data)
-            self.fit_graph.set_data(self.x_data, self.fitted_y)
-            # if len(self.x_data) > 1 and len(self.y_data) > 1:
-            self.ax.set_xlim(min(self.x_data), max(self.x_data))  # Set x-axis limits
-            self.ax.set_ylim(min(self.y_data )*0.9, max(self.y_data )* 1.1)  # Update y-axis limits based on new data
-            self.fig.canvas.draw_idle()
-            self.update_idletasks()
+        # :arrows_counterclockwise: Wait until fitting is completed
+        while self.odmr_module.data_dict.get("fit_status", "") != "ok":
             time.sleep(0.01)
-            # data = self.odmr_module.data_dict
-            # self.center_freq_value.config(text=f"{data.get('counts', ''):.2f} MHz")
-            # self.fwhm_value.config(text=f"{data.get('fwhm', ''):.2f} MHz")
-            # self.contrast_value.config(text=f"{data.get('contrast', ''):.2f}")
-            # self.sensitivity_value.config(text=f"{data.get('sensitivity', ''):.2f}")
-            # self.time_elapsed_value.config(text=f"{data.get('time_elapsed', ''):.2f} s")
-
+        with data_lock:
+            #data = self.odmr_module.data_dict
+            self.y_data = self.odmr_module.y_data
+            self.x_data = self.odmr_module.x_data
+            self.fitted_y = self.odmr_module.fitted_y_data
+        # Update the graph data
+        self.graph.set_data(self.x_data, self.y_data)
+        self.fit_graph.set_data(self.x_data, self.fitted_y)
+        self.ax.set_xlim(min(self.x_data), max(self.x_data))  # Set x-axis limits
+        self.ax.set_ylim(min(self.y_data) * 0.9, max(self.y_data) * 1.1)  # Update y-axis limits based on new data
+        self.fig.canvas.draw_idle()
+        self.update_idletasks()
+        # data = self.odmr_module.data_dict
+        # self.center_freq_value.config(text=f"{data.get('counts', ''):.2f} MHz")
+        # self.fwhm_value.config(text=f"{data.get('fwhm', ''):.2f} MHz")
+        # self.contrast_value.config(text=f"{data.get('contrast', ''):.2f}")
+        # self.sensitivity_value.config(text=f"{data.get('sensitivity', ''):.2f}")
+        # self.time_elapsed_value.config(text=f"{data.get('time_elapsed', ''):.2f} s")
 
 
     def on_close(self):

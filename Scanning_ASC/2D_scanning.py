@@ -501,51 +501,90 @@ class ScannerApp(tk.Tk):
             self.update_popup(popup, im_popup, canvas_popup, selected_value_key)
 
             
-    def save_heatmap_data(self, selection='PL'):
-        """
-        Saves each key-value pair from heatmap_data_dict to separate text files in the specified directory, 
-        appending a timestamp to each file. Creates the directory if it doesn’t exist.
-        """
+    # def save_heatmap_data(self, selection='PL'):
 
-        # Get the base filename from the GUI entry field
-        base_filename = self.file_name.get()
-        self.save_directory = f"//WXPC724/Share/Data/{self.probe.get()}/{self.sample.get()}"  # Default save directory
-        # Create the full path for saving the data, adding a .txt extension
-        #print(f'full_p: {full_path}')
-        directory = self.save_directory + f"/{time.strftime('%Y%m%d')}"
-        # Create the full path for saving the data, adding a .txt extension
-        full_path = os.path.join(directory, f"{time.strftime('%Y%m%d-%H%M-%S')}_{base_filename}.txt")  
+    #     """
+    #     Saves each key-value pair from heatmap_data_dict to separate text files in the specified directory, 
+    #     appending a timestamp to each file. Creates the directory if it doesn’t exist.
+    #     """
+
+    #     # Get the base filename from the GUI entry field
+    #     base_filename = self.file_name.get()
+    #     self.save_directory = f"//WXPC724/Share/Data/{self.probe.get()}/{self.sample.get()}"  # Default save directory
+    #     # Create the full path for saving the data, adding a .txt extension
+    #     #print(f'full_p: {full_path}')
+    #     directory = self.save_directory + f"/{time.strftime('%Y%m%d')}"
+    #     # Create the full path for saving the data, adding a .txt extension
+    #     full_path = os.path.join(directory, f"{time.strftime('%Y%m%d-%H%M-%S')}_{base_filename}.txt")  
 
         
-        #Ensure the directory exists
-        os.makedirs(directory, exist_ok=True)
-        # Iterate over each key and data in the heatmap data dictionary
+    #     #Ensure the directory exists
+    #     os.makedirs(directory, exist_ok=True)
+    #     # Iterate over each key and data in the heatmap data dictionary
         
-        save_data = []
+    #     save_data = []
 
-        for key, data in self.heatmap_data_dict.items():
-            # Construct a file name for each key (e.g., counts, freq_center, etc.)
-            if type(data) != type(None):
+    #     for key, data in self.heatmap_data_dict.items():
+    #         # Construct a file name for each key (e.g., counts, freq_center, etc.)
+    #         if type(data) != type(None):
                 
-                self.headerlines.append(f", {key}")
-                data_flat = data.flatten()
-                save_data.append(data_flat)
+    #             self.headerlines.append(f", {key}")
+    #             data_flat = data.flatten()
+    #             save_data.append(data_flat)
                 
             
-        # Open the file in append mode to save data
-        self.headerlines.append('\n')
+    #     # Open the file in append mode to save data
+    #     self.headerlines.append('\n')
 
+    #     data_for_file = np.array(save_data).T
+    #     with open(full_path, 'w') as f:
+    #         f.writelines(self.headerlines)
+    #         # Save the heatmap data as a text file in float format
+    #         np.savetxt(f, data_for_file, delimiter='\t')
+    #     print(f"Heatmap data saved at {full_path}")
+    #     np.savez(full_path.strip('.txt'), **self.heatmap_data_dict)
+        
+    #     print(selection)
+    #     if selection=='ODMR':
+    #         np.savez(full_path.strip('.txt')+'_ODMRData', counts=self.odmr_data, frequencies=self.odmr_frequencies)
+            
+    def save_heatmap_data(self, selection='PL', fixed_path=None):
+        """
+        Saves heatmap data to a single file.
+        If `fixed_path` is provided (or persistent_save_path exists), reuse it.
+        Otherwise, generate a new timestamped file (e.g. at end of scan).
+        """
+        # Determine save path
+        if fixed_path:
+            full_path = fixed_path
+        elif hasattr(self, 'persistent_save_path'):
+            full_path = self.persistent_save_path
+        else:
+            base_filename = self.file_name.get()
+            directory = os.path.join(f"//WXPC724/Share/Data/{self.probe.get()}/{self.sample.get()}", time.strftime('%Y%m%d'))
+            os.makedirs(directory, exist_ok=True)
+            full_path = os.path.join(directory, f"{time.strftime('%Y%m%d-%H%M-%S')}_{base_filename}.txt")
+            self.persistent_save_path = full_path  # store for later use
+        # Flatten and collect heatmap data
+        save_data = []
+        for key, data in self.heatmap_data_dict.items():
+            if data is not None:
+                save_data.append(data.flatten())
         data_for_file = np.array(save_data).T
+        # Save .txt and .npz
         with open(full_path, 'w') as f:
             f.writelines(self.headerlines)
             # Save the heatmap data as a text file in float format
             np.savetxt(f, data_for_file, delimiter='\t')
         print(f"Heatmap data saved at {full_path}")
-        np.savez(full_path.strip('.txt'), **self.heatmap_data_dict)
-        
+        np.savez(full_path.replace('.txt', ''), **self.heatmap_data_dict)
         print(selection)
-        if selection=='ODMR':
-            np.savez(full_path.strip('.txt')+'_ODMRData', counts=self.odmr_data, frequencies=self.odmr_frequencies)
+        if selection == 'ODMR':
+            np.savez(full_path.replace('.txt', '') + '_ODMRData',
+                     counts=self.odmr_data, frequencies=self.odmr_frequencies)
+        print(f"Heatmap data saved at {full_path}")
+            
+  
         
     def update_popup(self, popup, im_popup, canvas_popup, selected_value_key):
         """
@@ -733,6 +772,8 @@ class ScannerApp(tk.Tk):
                 print('Move to new line')
                 
                 pos = self.my_app.asc500.scanner.getPositionsXYRel()
+                with self.my_app.currPos_lock:
+                    self.my_app.currPos=pos
                 print(f'pos_check {pos}')
 
                 if fast_axis == 'X':
@@ -764,6 +805,8 @@ class ScannerApp(tk.Tk):
                 
                 while (abs(pos[0] - tgt_start[0]) > 0.001e-6 or abs(pos[1] - tgt_start[1]) > 0.001e-6):
                     pos = self.my_app.asc500.scanner.getPositionsXYRel()
+                    with self.my_app.currPos_lock:
+                        self.my_app.currPos=pos
                     time.sleep(0.005)
                
             
@@ -813,13 +856,19 @@ class ScannerApp(tk.Tk):
                         self.heatmap_data_dict['AFM height [um]'][:, i] = scipy.stats.binned_statistic(module.y_list[i], module.z_out_list[i], bins=module.fast_steps)[0]
                         
                     # Update the heatmap display
-                    self.after(0, self.update_displayed_heatmap)
+                    self.after(0, self.update_displayed_heatmap) 
                     self.canvas.draw_idle()
                     self.update_idletasks()       
 
                     print(f'line: {i+1}, number of lines measured: {rowsmeasured}')    
 
                     t_end_line = time.time()
+                    # Update expected time left for the scan
+                    avg_line_time = t_end_line - t_start_line
+                    remaining_lines = module.slow_steps - (i + 1)
+                    time_left_min = (avg_line_time * remaining_lines) / 60
+                    self.time_left_label.config(text="{:.3f}".format(time_left_min))
+                    self.after(0, self.update_idletasks)
 
                 else:
                     print(f'Xtarget limit = {self.my_app.X_Travel_lim} , exceeded!')
@@ -860,7 +909,7 @@ class ScannerApp(tk.Tk):
             
             self.scanning = False
             self.status_label.config(text="Idle")
-            
+        self.my_app.periodic_position_update()   
         self.line_scan_2D_thread = threading.Thread(target=line_scan_2D)
         self.line_scan_2D_thread.start()
 
@@ -1498,13 +1547,19 @@ class ScannerApp(tk.Tk):
                 self.heatmap_data_dict[key] = np.zeros([steps[1], steps[0]])
                 self.heatmap_data_dict[key][:,:] = np.nan
                 
+            #Reset persisting save path for new scan
+            if hasattr(self, 'persistent_save_path'): 
+                del self.persistent_save_path
+    
             
             self.im.set_extent([x0 - total_X_length/2 , x0 + total_X_length/2, y0 - total_Y_length/2, y0 + total_Y_length/2])
+            
+            line_times = []
     
             # Main scanning loop 
             for i in range(module.slow_steps):
                 
-                start_time = int(time.strftime("%M")) * 60 + int(time.strftime("%S"))
+                # start_time = int(time.strftime("%M")) * 60 + int(time.strftime("%S"))
                 slow = slow0 + (i) * delta_slow
                 fast = fast0
                 move_to_start_time=time.time()
@@ -1550,6 +1605,7 @@ class ScannerApp(tk.Tk):
                     #print(f'getdata_using_qua = { time.time()}')
                     f_idx = i * module.fast_steps + j
                     module.get_data(f_idx) # Get data from the module after moving
+                    module.run_fitting()  # Blocking assures the data_dict is updated
                 
                     # Access the data dictionary directly from the module object
                     
@@ -1573,6 +1629,15 @@ class ScannerApp(tk.Tk):
                     # Update the heatmap display and UI
                     self.after(0, self.update_displayed_heatmap)
                     self.after(0, update_ui)
+                    self.update_idletasks()
+                    # Time left estimation
+                    line_end_time = time.time()
+                    line_duration = line_end_time - move_to_start_time
+                    line_times.append(line_duration)
+                    recent_avg = np.mean(line_times[-5:]) if len(line_times) >= 5 else np.mean(line_times)
+                    lines_remaining = module.slow_steps - (i + 1)
+                    minutes_left = (recent_avg * lines_remaining) / 60
+                    self.time_left_label.config(text="{:.3f} ".format(minutes_left))
                     
 
                     if self.save_flag.get():  # If auto-save is ON
@@ -1596,11 +1661,11 @@ class ScannerApp(tk.Tk):
               
                           
                 # Update expected time left for the scan
-                finish_time = int(time.strftime("%M")) * 60 + int(time.strftime("%S"))
-                time.sleep(delay_slow)
-                expected_time = ((finish_time - start_time) * (1 - i / module.slow_steps) *  module.slow_steps) / 60
-                self.time_left_label.config(text="{:.3f}".format(expected_time))
-                self.after(0, update_ui)
+                # finish_time = int(time.strftime("%M")) * 60 + int(time.strftime("%S"))
+                # time.sleep(delay_slow)
+                # expected_time = ((finish_time - start_time) * (1 - i / module.slow_steps) *  module.slow_steps) / 60
+                # self.time_left_label.config(text="{:.3f}".format(expected_time))
+                # self.after(0, update_ui)
             
             end_time = time.time()
             scantime = end_time - start_time_0
