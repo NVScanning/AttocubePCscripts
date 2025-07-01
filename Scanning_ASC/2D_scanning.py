@@ -1605,7 +1605,19 @@ class ScannerApp(tk.Tk):
                     #print(f'getdata_using_qua = { time.time()}')
                     f_idx = i * module.fast_steps + j
                     module.get_data(f_idx) # Get data from the module after moving
-                    module.run_fitting()  # Blocking assures the data_dict is updated
+                    
+                    # check if this is an ODMR module with fitting:
+                    if hasattr(module, "start_fitting_thread"):
+                        module.start_fitting_thread()
+                        threading.Thread(
+                            target=self.update_odmr_plot_2dscan,
+                            args=(module,),
+                            daemon=True
+                        ).start()
+                    else:
+                        # PL module
+                        # no fitting, no plotting
+                        pass
                 
                     # Access the data dictionary directly from the module object
                     
@@ -1634,9 +1646,9 @@ class ScannerApp(tk.Tk):
                     line_end_time = time.time()
                     line_duration = line_end_time - move_to_start_time
                     line_times.append(line_duration)
-                    recent_avg = np.mean(line_times[-5:]) if len(line_times) >= 5 else np.mean(line_times)
+                    average_line_time = np.mean(line_times)
                     lines_remaining = module.slow_steps - (i + 1)
-                    minutes_left = (recent_avg * lines_remaining) / 60
+                    minutes_left = (average_line_time * lines_remaining) / 60
                     self.time_left_label.config(text="{:.3f} ".format(minutes_left))
                     
 
@@ -1738,8 +1750,46 @@ class ScannerApp(tk.Tk):
         # Cleanup ODMR Module
         if hasattr(self, 'odmr_module'):
             self.odmr_module.cleanup()
+            
+            
+            
+            
+    def update_odmr_plot_2dscan(self, module):
+        """
+        Waits for the fitting to complete, then updates the ODMR plot
+        with x_data, y_data, and fitted_y_data from the module.
+        Arguments:
+        module : The ODMR module instance running the measurement.
+        """
+        while module.data_dict.get("fit_status", "") != "ok":
+            time.sleep(0.01)
+        with data_lock:
+            x_data = module.data_dict.get("x_data")
+            y_data = module.data_dict.get("y_data")
+            fitted_y_data = module.data_dict.get("fitted_y_data")
+        self.update_plot(x_data, y_data, fitted_y_data)        
+            
+    def abort_scan(self):
+        """
+        Aborts an ongoing scan by stopping scanning processes, updating the status label,
+        and cleaning up resources for the PL and ODMR modules if they exist.
+        """
+        #self.my_app.closed = True
+        self.scanning = False
+        self.status_label.config(text="Idle")
+        # Stop the motors
+        self.my_app.asc500.scanner.pauseScanner()
+        # Cleanup PL Module
+        if hasattr(self, 'pl_module'):
+            self.pl_module.cleanup()
+        # Cleanup PL Module for linescan
+        if hasattr(self, 'pl_module_linescan'):
+            self.pl_module_linescan.cleanup()
+        # Cleanup ODMR Module
+        if hasattr(self, 'odmr_module'):
+            self.odmr_module.cleanup()
 
-    
+
 
 if __name__ == "__main__":
     app = ScannerApp()
