@@ -326,30 +326,28 @@ class ODMRModule:
             # Wait until the program reaches the 'pause' statement again, indicating that the QUA program is done
             while not self.job.is_paused() and self.job.status == 'running':
                 time.sleep(0.1)
-        except Exception as e:
-            print(f"[ERROR] Could not resume job: {e}")
-            return
+        except:
+            pass
         if f_idx == 0:
             self.res_handles = self.job.result_handles
             self.counts_handle = self.res_handles.get("counts")
             self.iteration_handle = self.res_handles.get("iteration")
-        # print("in get data")
-        # self.iteration_handle.wait_for_values(1)
-        # print(f'state:{self.state}')
-        # self.iteration_sum=0
-        # self.counts_sum = np.zeros(np.shape(self.f_vec))
-        # self.fitted_y_data= np.zeros(np.shape(self.f_vec))
-        # self.y_data=np.zeros(np.shape(self.f_vec))
-        # print('wa')
-        self.counts_handle.wait_for_values(1)
-        self.iteration_handle.wait_for_values(1)
-        # print('it')
-        new_counts = self.counts_handle.fetch_all()  # add something to check size of fetched array
-        while np.shape(new_counts)[0] != f_idx + 1 and type(self.job) != type(None):
+            self.last_idx = 0
+            self.new_counts = []
+       
+            self.counts_handle.wait_for_values(1)
+            self.iteration_handle.wait_for_values(1)
+            
+        while self.counts_handle.count_so_far() < f_idx + 1 and type(self.job) != type(None):
             print('waiting for counts')
             time.sleep(0.1)
-            new_counts = self.counts_handle.fetch_all()
-        counts = new_counts["value"][-1]
+            
+        first_idx = self.last_idx
+        self.last_idx = self.counts_handle.count_so_far()
+        
+        self.new_counts.append(self.counts_handle.fetch(slice(first_idx,self.last_idx)))
+
+        counts = self.new_counts[-1]["value"][-1]
         self.x_data = (NV_LO_freq + self.f_vec) / u.MHz  # x axis [frequencies]
         # self.x_data = (NV_LO_freq + self.f_vec*u.MHz) / u.GHz
         self.y_data = self.generate_fake_data(self.x_data, self.fit_type)
@@ -379,7 +377,7 @@ class ODMRModule:
             popt, fitted = self.fit_lorentzian(self.x_data, self.y_data, self.fit_type)
             fit_status = 'ok'
         except Exception as e:
-            print(f"[WARNING] Fit failed: {e}")
+            print(f"Fit failed: {e}")
             fitted = np.full_like(self.y_data, np.mean(self.y_data))
             popt = [-1, -1, -1, np.mean(self.y_data)]
             fit_status = 'failed'
@@ -389,7 +387,7 @@ class ODMRModule:
         mu_B = 9.2740100783e-24
         try:
             center_freq = popt[0]
-            fwhm = 2 * popt[2]
+            fwhm = 2 * abs(popt[2])  # Take absolute to avoid negative widths
             contrast = (np.max(fitted) - np.min(fitted)) / np.max(fitted)
             I0 = np.max(self.y_data)
             sensitivity = (h * fwhm) / (g * mu_B * contrast * np.sqrt(I0))

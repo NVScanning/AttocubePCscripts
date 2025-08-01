@@ -22,10 +22,8 @@ class ODMRFitPopup(tk.Toplevel):
         #self.update_flag = False
         self.transient(parent) #set to be on top of the main window
         self.grab_set() #hijack all commands from the master (clicks on the main window are ignored)
-        self.motorized_stage_frame = ttk.Frame(self)
-        self.motorized_stage_frame.grid(row=0, column=1, sticky="nsew")
-        self.my_app = AscStageApp(self.motorized_stage_frame)
-        
+        self.my_app = AscStageApp()
+        self.motorized_stage_app = self.my_app
         self.odmr_module.z_control = self.my_app.asc500.zcontrol
         self.odmr_module.scannerpos = self.my_app.asc500.scanner
         
@@ -134,6 +132,10 @@ class ODMRFitPopup(tk.Toplevel):
         self.odmr_module.start_job()
         #self.odmr_module.fetch_data()
         self.odmr_module.start_fetching()
+        # Reset fit_status to make update_plot wait
+        self.odmr_module.data_dict["fit_status"] = "pending"
+        
+        # Start new acquisition and fit
         
         threading.Thread(target=self.run_odmr_acq, daemon=True).start()
         
@@ -195,29 +197,40 @@ class ODMRFitPopup(tk.Toplevel):
         self.after(100, self.schedule_update)     
 
     def update_plot(self):
-        print('hello')
-        print(f'State: {self.odmr_module.state}')
-        # :arrows_counterclockwise: Wait until fitting is completed
+        print('Waiting for fit completion...')
         while self.odmr_module.data_dict.get("fit_status", "") != "ok":
             time.sleep(0.01)
+    
         with data_lock:
-            #data = self.odmr_module.data_dict
             self.y_data = self.odmr_module.y_data
             self.x_data = self.odmr_module.x_data
             self.fitted_y = self.odmr_module.fitted_y_data
-        # Update the graph data
+            data = self.odmr_module.data_dict.copy()
+    
+        # Update the graph
         self.graph.set_data(self.x_data, self.y_data)
         self.fit_graph.set_data(self.x_data, self.fitted_y)
-        self.ax.set_xlim(min(self.x_data), max(self.x_data))  # Set x-axis limits
-        self.ax.set_ylim(min(self.y_data) * 0.9, max(self.y_data) * 1.1)  # Update y-axis limits based on new data
+    
+        if len(self.y_data) > 1:
+            self.ax.set_xlim(min(self.x_data), max(self.x_data))
+            self.ax.set_ylim(min(self.y_data) * 0.9, max(self.y_data) * 1.1)
+        else:
+            print("Warning: y_data is too short to update limits")
+    
         self.fig.canvas.draw_idle()
         self.update_idletasks()
-        # data = self.odmr_module.data_dict
-        # self.center_freq_value.config(text=f"{data.get('counts', ''):.2f} MHz")
-        # self.fwhm_value.config(text=f"{data.get('fwhm', ''):.2f} MHz")
-        # self.contrast_value.config(text=f"{data.get('contrast', ''):.2f}")
-        # self.sensitivity_value.config(text=f"{data.get('sensitivity', ''):.2f}")
-        # self.time_elapsed_value.config(text=f"{data.get('time_elapsed', ''):.2f} s")
+    
+        # Safely update the GUI labels with new fit results
+        try:
+            self.center_freq_value.config(text=f"{data['freq_center']:.2f} MHz")
+            self.fwhm_value.config(text=f"{data['fwhm']:.2f} MHz")
+            self.contrast_value.config(text=f"{data['contrast']:.2f} ")
+            self.sensitivity_value.config(text=f"{data['sensitivity']:.2f}")
+            self.time_elapsed_value.config(text=f"{data['time_elapsed']:.2f} s")
+        except KeyError as e:
+            print(f"[ODMR Popup] Missing key in data_dict: {e}")
+
+
 
 
     def on_close(self):

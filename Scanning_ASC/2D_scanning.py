@@ -30,10 +30,14 @@ from qm.octave import *
 from qm.octave.octave_manager import ClockMode
 #Modules used
 from odmr_popup import ODMRPopup
+from rabi_popup import RabiPopup
 from ODMRFitPopup import ODMRFitPopup
+from RabiFitPopup import RabiFitPopup
+
 from pl_module import PLModule
 from pl_module_linescan import PLModuleLinescan
 from odmr_module import ODMRModule
+from rabi_module import RabiModule
 ##Optimization functions##
 import threading
 data_lock = threading.Lock()
@@ -162,6 +166,10 @@ class ScannerApp(tk.Tk):
         
         # Add ODMR Fit Popup Button
         self.odmr_fit_button = ttk.Button(self.ODMR_frame, text="ODMR", command=self.open_odmr_fit_popup)
+        self.odmr_fit_button.pack(pady=10)
+        
+        # Add Rabi Fit Popup Button
+        self.odmr_fit_button = ttk.Button(self.ODMR_frame, text="Rabi", command=self.open_rabi_fit_popup)
         self.odmr_fit_button.pack(pady=10)
 
         
@@ -444,6 +452,15 @@ class ScannerApp(tk.Tk):
             # Open the ODMR Fit Popup
         ODMRFitPopup(self)
         
+    def open_rabi_fit_popup(self):
+        """
+        The command for ODMR fit botton, which executes the ODMRFitPopup submodule.
+
+        """
+
+            # Open the ODMR Fit Popup
+        RabiFitPopup(self)
+        
     def update_displayed_heatmap(self, selection='PL'):
         """
         Updates the heatmap data for all key elements with the logic to distinguish PL and ODMR module.
@@ -501,52 +518,7 @@ class ScannerApp(tk.Tk):
             self.update_popup(popup, im_popup, canvas_popup, selected_value_key)
 
             
-    # def save_heatmap_data(self, selection='PL'):
 
-    #     """
-    #     Saves each key-value pair from heatmap_data_dict to separate text files in the specified directory, 
-    #     appending a timestamp to each file. Creates the directory if it doesn’t exist.
-    #     """
-
-    #     # Get the base filename from the GUI entry field
-    #     base_filename = self.file_name.get()
-    #     self.save_directory = f"//WXPC724/Share/Data/{self.probe.get()}/{self.sample.get()}"  # Default save directory
-    #     # Create the full path for saving the data, adding a .txt extension
-    #     #print(f'full_p: {full_path}')
-    #     directory = self.save_directory + f"/{time.strftime('%Y%m%d')}"
-    #     # Create the full path for saving the data, adding a .txt extension
-    #     full_path = os.path.join(directory, f"{time.strftime('%Y%m%d-%H%M-%S')}_{base_filename}.txt")  
-
-        
-    #     #Ensure the directory exists
-    #     os.makedirs(directory, exist_ok=True)
-    #     # Iterate over each key and data in the heatmap data dictionary
-        
-    #     save_data = []
-
-    #     for key, data in self.heatmap_data_dict.items():
-    #         # Construct a file name for each key (e.g., counts, freq_center, etc.)
-    #         if type(data) != type(None):
-                
-    #             self.headerlines.append(f", {key}")
-    #             data_flat = data.flatten()
-    #             save_data.append(data_flat)
-                
-            
-    #     # Open the file in append mode to save data
-    #     self.headerlines.append('\n')
-
-    #     data_for_file = np.array(save_data).T
-    #     with open(full_path, 'w') as f:
-    #         f.writelines(self.headerlines)
-    #         # Save the heatmap data as a text file in float format
-    #         np.savetxt(f, data_for_file, delimiter='\t')
-    #     print(f"Heatmap data saved at {full_path}")
-    #     np.savez(full_path.strip('.txt'), **self.heatmap_data_dict)
-        
-    #     print(selection)
-    #     if selection=='ODMR':
-    #         np.savez(full_path.strip('.txt')+'_ODMRData', counts=self.odmr_data, frequencies=self.odmr_frequencies)
             
     def save_heatmap_data(self, selection='PL', fixed_path=None):
         """
@@ -581,8 +553,12 @@ class ScannerApp(tk.Tk):
         print(selection)
         if selection == 'ODMR':
             np.savez(full_path.replace('.txt', '') + '_ODMRData',
-                     counts=self.odmr_data, frequencies=self.odmr_frequencies)
+                     counts=self.odmr_data, frequencies=self.odmr_frequencies, f_center = self.freq_centers)
         print(f"Heatmap data saved at {full_path}")
+        # Save pointer to last ODMR file
+        pointer_path = os.path.join(os.path.dirname(odmr_path), 'last_odmr_path.txt')
+        with open(pointer_path, 'w') as f:
+            f.write(odmr_path)
             
   
         
@@ -1479,6 +1455,7 @@ class ScannerApp(tk.Tk):
                 self.odmr_module.set_odmr_params(self.odmr_popup.params)
                 self.odmr_fit_data = []
                 self.odmr_data = []
+                self.freq_centers=  []
                 
                 
             module.z_control = self.my_app.asc500.zcontrol
@@ -1635,6 +1612,7 @@ class ScannerApp(tk.Tk):
                         self.odmr_frequencies = data_dict.get('x_data')
                         self.odmr_data.append([data_dict.get('y_data')])
                         self.odmr_fit_data.append([data_dict.get('fitted_y_data')])
+                        self.freq_centers.append(data_dict.get('freq_center', np.nan))
                         
                         #odmr_spectrum.append('')
                     
