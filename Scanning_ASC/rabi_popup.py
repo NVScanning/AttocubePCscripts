@@ -52,17 +52,17 @@ class RabiPopup(tk.Toplevel):
         ttk.Label(self, text="Time Between Pulses (ns)").grid(row=2, column=0, padx=10, pady=5)
         self.pulse_spacing_entry = ttk.Entry(self)
         self.pulse_spacing_entry.grid(row=2, column=1, padx=10, pady=5)
-        self.pulse_spacing_entry.insert(0, "100")
+        self.pulse_spacing_entry.insert(0, "4")
         # Number of pulses
         ttk.Label(self, text="N_pulses").grid(row=3, column=0, padx=10, pady=5)
         self.n_pulses_entry = ttk.Entry(self)
         self.n_pulses_entry.grid(row=3, column=1, padx=10, pady=5)
-        self.n_pulses_entry.insert(0, "50")
+        self.n_pulses_entry.insert(0, "150")
         # Averages
         ttk.Label(self, text="N_average").grid(row=4, column=0, padx=10, pady=5)
         self.n_avg_entry = ttk.Entry(self)
         self.n_avg_entry.grid(row=4, column=1, padx=10, pady=5)
-        self.n_avg_entry.insert(0, "10")
+        self.n_avg_entry.insert(0, "1000")
         # RF power
         ttk.Label(self, text="RF Power (dBm)").grid(row=5, column=0, padx=10, pady=5)
         self.rf_power_entry = ttk.Entry(self)

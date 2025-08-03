@@ -54,49 +54,80 @@ class RabiModule:
             raise ValueError("Rabi parameters not set.")
 
         Typ_gain = 42
-        rf_freq = self.rabi_params["rf_freq"] * u.GHz
+        rf_freq = self.rabi_params["rf_freq"] * u.MHz
         f_IF = (rf_freq - NV_LO_freq) / u.MHz
+        print(f'IF is : {f_IF}')
         rf_power_dbm = self.rabi_params["rf_power"] - Typ_gain
         rf_power_watt = 10 ** ((rf_power_dbm - 30) / 10)
         R = 50
         Vrms = (rf_power_watt * R) ** 0.5 / 2
         amp_val = Vrms * 2 ** 0.5
+        print(f'amp_value: {amp_val}')
 
         t_min = 0
-        t_max = self.rabi_params["pulse_spacing"] * self.rabi_params["n_pulses"]
-        n_points = self.rabi_params["n_pulses"]
+        t_step = int(self.rabi_params["pulse_spacing"])  # e.g. 4 ns
+        n_points = int(self.rabi_params["n_pulses"])     # e.g. 150
+        t_max =  t_step * n_points
         self.N_average = self.rabi_params["N_average"]
+        flattened = self.slow_steps*self.fast_steps
 
-        self.t_vec = np.linspace(t_min, t_max, n_points)
+        t_step = int(self.rabi_params["pulse_spacing"])
+        self.t_vec = np.arange(self.rabi_params["n_pulses"], dtype=int) * t_step
+
+
         self.x_data = self.t_vec
         self.y_data = np.zeros_like(self.x_data)
         self.fitted_y_data = np.zeros_like(self.x_data)
 
         with program() as rabi:
-            n = declare(int)
             t = declare(int)
+            i = declare(int)  
             m = declare(int)
+            times = declare(int, size=100)  # QUA vector for storing the time-tags
+            m_avg = self.N_average
             counts = declare(int)
+            counts_dark = declare(int)
             counts_st = declare_stream()
-
-            with for_(m, 0, m < self.N_average, m + 1):
-                with for_(*from_array(t, self.t_vec)):
-                    update_frequency("NV", f_IF * u.MHz)
-                    align()
-                    play("laser_ON", "AOM1", duration=self.readout_len * u.ns)
-                    play("gauss" * amp(amp_val), "NV", duration=t * u.ns)
-                    wait(1_000 * u.ns, "SPCM1")
-                    measure("long_readout", "SPCM1", None, counts)
-                    save(counts, counts_st)
-                    wait(wait_between_runs * u.ns)
-
+            counts_dark_st = declare_stream()
+            
+            update_frequency("NV", f_IF * u.MHz)
+            
+            with for_(i, 0, i < flattened + 1, i + 1):
+                
+                pause()
+                
+    
+                with for_(m, 0, m < m_avg, m + 1):
+                    with for_(*from_array(t, self.t_vec)):
+                        # Real Rabi pulse
+                        
+                        play("x180" * amp(0.1), "NV", duration=t)
+                        align()
+                        play("laser_ON", "AOM1")
+                        measure("readout", "SPCM1", None, time_tagging.analog(times, self.readout_len, counts))
+                        save(counts, counts_st)
+        
+                        wait(wait_after_measure)
+                        align()
+        
+                        # # Dark count (no MW pulse)
+                        # play("x180" * amp(0), "NV", duration=t )
+                        # align()
+                        # play("laser_ON", "AOM1")
+                        # measure("readout", "SPCM1", None, time_tagging.analog(times, self.readout_len, counts_dark))
+                        # save(counts_dark, counts_dark_st)
+        
             with stream_processing():
-                counts_st.buffer(self.N_average, n_points).map(FUNCTIONS.average(0)).save_all("counts")
-
+                counts_st.buffer(m_avg, len(self.t_vec)).map(FUNCTIONS.average(0)).save_all("counts")
+                # counts_st.buffer(n_points).average().save("counts")
+                # counts_dark_st.buffer(n_points).average().save("counts_dark")
+    
         self.job = self.qm.execute(rabi)
         self.job_start_time = time.time()
-
+        print("Job started.")
+        
     def on_start_fetching(self):
+        print("Started fetching data.")
         if not self.job:
             return
 

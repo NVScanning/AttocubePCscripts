@@ -142,24 +142,67 @@ class ScannerApp(tk.Tk):
         # Selected value variable
         self.selected_value_var = tk.StringVar(value='counts [kc/s]')
 
-        # Buttons for switching heatmaps
+        # # Buttons for switching heatmaps
+        # self.button_frame = ttk.Frame(self.graph_frame)
+        # self.button_frame.pack(side=tk.BOTTOM, fill=tk.X)
+        
+        # buttons = ['AFM height [um]', 'counts [kc/s]', 'freq_center', 'fwhm', 'contrast', 'sensitivity','rabi_freq', 'rabi_decay', 'rabi_contrast']
+        # for key in buttons:
+        #     button = ttk.Radiobutton(
+        #         self.button_frame, 
+        #         text=key.capitalize(), 
+        #         variable=self.selected_value_var, 
+        #         value=key, 
+        #         command=self.update_displayed_heatmap
+        #     )
+        #     button.pack(side=tk.LEFT, padx=5, pady=5)
+        
+        # # Add popup button in the same row
+        # self.popup_button = ttk.Button(self.button_frame, text="Popup", command=self.popup_heatmap)
+        # self.popup_button.pack(side=tk.LEFT, padx=5, pady=5)
+        
+        # Create a unified button frame under the graph frame
         self.button_frame = ttk.Frame(self.graph_frame)
         self.button_frame.pack(side=tk.BOTTOM, fill=tk.X)
         
-        buttons = ['AFM height [um]', 'counts [kc/s]', 'freq_center', 'fwhm', 'contrast', 'sensitivity']
-        for key in buttons:
+        # Sub-frames for arranging two rows of buttons
+        self.odmr_button_row = ttk.Frame(self.button_frame)
+        self.odmr_button_row.pack(side=tk.TOP, fill=tk.X)
+        
+        self.rabi_button_row = ttk.Frame(self.button_frame)
+        self.rabi_button_row.pack(side=tk.TOP, fill=tk.X)
+        
+        # Make sure the shared selection variable is initialized
+        self.selected_value_var = tk.StringVar(value='counts [kc/s]')
+        
+        # ODMR-related buttons
+        odmr_keys = ['AFM height [um]', 'counts [kc/s]', 'freq_center', 'fwhm', 'contrast', 'sensitivity']
+        for key in odmr_keys:
             button = ttk.Radiobutton(
-                self.button_frame, 
-                text=key.capitalize(), 
-                variable=self.selected_value_var, 
-                value=key, 
+                self.odmr_button_row,
+                text=key.capitalize(),
+                variable=self.selected_value_var,
+                value=key,
                 command=self.update_displayed_heatmap
             )
             button.pack(side=tk.LEFT, padx=5, pady=5)
         
-        # Add popup button in the same row
+        # Rabi-related buttons (second line)
+        rabi_keys = ['rabi_freq', 'rabi_decay', 'rabi_contrast']
+        for key in rabi_keys:
+            button = ttk.Radiobutton(
+                self.rabi_button_row,
+                text=key.capitalize(),
+                variable=self.selected_value_var,
+                value=key,
+                command=self.update_displayed_heatmap
+            )
+            button.pack(side=tk.LEFT, padx=5, pady=5)
+        
+        # Popup button placed on the right
         self.popup_button = ttk.Button(self.button_frame, text="Popup", command=self.popup_heatmap)
-        self.popup_button.pack(side=tk.LEFT, padx=5, pady=5)
+        self.popup_button.pack(side=tk.RIGHT, padx=5, pady=5)
+
         
         # Initialize the selected heatmap
         self.update_displayed_heatmap()
@@ -169,8 +212,8 @@ class ScannerApp(tk.Tk):
         self.odmr_fit_button.pack(pady=10)
         
         # Add Rabi Fit Popup Button
-        self.odmr_fit_button = ttk.Button(self.ODMR_frame, text="Rabi", command=self.open_rabi_fit_popup)
-        self.odmr_fit_button.pack(pady=10)
+        self.rabi_fit_button = ttk.Button(self.ODMR_frame, text="Rabi", command=self.open_rabi_fit_popup)
+        self.rabi_fit_button.pack(pady=10)
 
         
         
@@ -412,7 +455,7 @@ class ScannerApp(tk.Tk):
         
         # Drop-Down Menu (ComboBox)
         self.dropdown_var = tk.StringVar()
-        self.dropdown_menu = ttk.Combobox(scanning_control_frame, textvariable=self.dropdown_var, values=["PL", "ODMR"], state="readonly", style='TCombobox')
+        self.dropdown_menu = ttk.Combobox(scanning_control_frame, textvariable=self.dropdown_var, values=["PL", "ODMR","Rabi"], state="readonly", style='TCombobox')
         self.dropdown_menu.grid(row=1, column=3, padx=(6, 0), pady=(8,0), sticky="w")
         self.dropdown_menu.current(0)  # Set default selection to the first option    
         self.initialize_graph()
@@ -554,11 +597,19 @@ class ScannerApp(tk.Tk):
         if selection == 'ODMR':
             np.savez(full_path.replace('.txt', '') + '_ODMRData',
                      counts=self.odmr_data, frequencies=self.odmr_frequencies, f_center = self.freq_centers)
+            # Write pointer to last ODMR path
+            odmr_path = full_path.replace('.txt', '') + '_ODMRData.npz'
+            pointer_file = os.path.join("//WXPC724/Share/Data", "last_odmr_path.txt")
+            with open(pointer_file, 'w') as f:
+                f.write(odmr_path)
         print(f"Heatmap data saved at {full_path}")
-        # Save pointer to last ODMR file
-        pointer_path = os.path.join(os.path.dirname(odmr_path), 'last_odmr_path.txt')
-        with open(pointer_path, 'w') as f:
-            f.write(odmr_path)
+
+            
+    
+            
+
+
+
             
   
         

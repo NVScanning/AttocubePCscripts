@@ -176,7 +176,7 @@ class ODMRModule:
 
 
     def on_start_fetching(self):
-        print("Started fetching data.")
+        
         # self.res_handles = self.job.result_handles
         # self.counts_handle = self.res_handles.get("counts")
         # self.iteration_handle = self.res_handles.get("iteration")
