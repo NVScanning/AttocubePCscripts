@@ -76,6 +76,7 @@ class ODMRModule:
         
         N_points = self.odmr_params["N_points"]
         rf_power_dbm = self.odmr_params["rf_power"] - Typ_gain
+        rf_gain = self.odmr_params["rf_power"]
         self.N_average = self.odmr_params["N_average"]
         self.fit_type = self.odmr_params["fit_type"]
         
@@ -140,7 +141,7 @@ class ODMRModule:
                         align()
                         # Play the mw pulse...
                         play("laser_ON", "AOM1", duration=self.readout_len * u.ns)
-                        play("cw" * amp(0.1), "NV", duration=self.readout_len * u.ns)
+                        play("cw" * amp(rf_gain), "NV", duration=self.readout_len * u.ns)
                         # ... and the laser pulse simultaneously (the laser pulse is delayed by 'laser_delay_1')
                         #play("laser_ON", "AOM1", duration=self.readout_len * u.ns)
                         wait(1_000 * u.ns, "SPCM1")  # so readout don't catch the first part of spin reinitialization
@@ -350,8 +351,8 @@ class ODMRModule:
         counts = self.new_counts[-1]["value"][-1]
         self.x_data = (NV_LO_freq + self.f_vec) / u.MHz  # x axis [frequencies]
         # self.x_data = (NV_LO_freq + self.f_vec*u.MHz) / u.GHz
-        self.y_data = self.generate_fake_data(self.x_data, self.fit_type)
-        # self.y_data = (counts / 1000 / (self.readout_len * 1e-9))  # counts( [frequencies])
+        #self.y_data = self.generate_fake_data(self.x_data, self.fit_type)
+        self.y_data = (counts / 1000 / (self.readout_len * 1e-9))  # counts( [frequencies])
         # print(f"y_data: {self.y_data}")
         # print(f"fitted_y: {self.fitted_y_data}")
         # Read AFM position and height

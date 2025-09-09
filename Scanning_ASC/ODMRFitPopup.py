@@ -183,7 +183,7 @@ class ODMRFitPopup(tk.Toplevel):
         self.odmr_module.get_data(0)  # Only fetches raw x_data, y_data
         self.odmr_module.start_fitting_thread()  # Triggers fit in background
         end = time.time()
-        print(f"ODMR acquisition + fit  time is {end - start:.3f} s")
+        print(f"ODMR acquisition {end - start:.3f} s")
 
         
 

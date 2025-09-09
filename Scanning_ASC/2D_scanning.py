@@ -287,22 +287,22 @@ class ScannerApp(tk.Tk):
         scanning_control_frame = ttk.Frame(control_frame)
         scanning_control_frame.grid(row=1, column=1)
 
-        ttk.Label(scanning_control_frame, text="X Length (um)").grid(row=2, column=0, padx=5, pady=5, sticky="w")
+        ttk.Label(scanning_control_frame, text="X Length (um or V)").grid(row=2, column=0, padx=5, pady=5, sticky="w")
         self.total_X_length = ttk.Entry(scanning_control_frame, width=10)
         self.total_X_length.insert(0, "10")
         self.total_X_length.grid(row=2, column=1, padx=5, pady=5, sticky="w")
 
-        ttk.Label(scanning_control_frame, text="Y Length (um)").grid(row=2, column=2, padx=5, pady=5, sticky="w")
+        ttk.Label(scanning_control_frame, text="Y Length (um or V)").grid(row=2, column=2, padx=5, pady=5, sticky="w")
         self.total_Y_length = ttk.Entry(scanning_control_frame, width=10)
         self.total_Y_length.insert(0, "10")
         self.total_Y_length.grid(row=2, column=3, padx=5, pady=5, sticky="w")
 
-        ttk.Label(scanning_control_frame, text="Step X (um)").grid(row=3, column=0, padx=5, pady=5, sticky="w")
+        ttk.Label(scanning_control_frame, text="Step X (um or V)").grid(row=3, column=0, padx=5, pady=5, sticky="w")
         self.delta_X = ttk.Entry(scanning_control_frame, width=10)
         self.delta_X.insert(0, "1")
         self.delta_X.grid(row=3, column=1, padx=5, pady=5, sticky="w")
 
-        ttk.Label(scanning_control_frame, text="Step Y (um)").grid(row=3, column=2, padx=5, pady=5, sticky="w")
+        ttk.Label(scanning_control_frame, text="Step Y (um or V)").grid(row=3, column=2, padx=5, pady=5, sticky="w")
         self.delta_Y = ttk.Entry(scanning_control_frame, width=10)
         self.delta_Y.insert(0, "1")
         self.delta_Y.grid(row=3, column=3, padx=5, pady=5, sticky="w")
@@ -366,7 +366,7 @@ class ScannerApp(tk.Tk):
         
         # Create the drop-down list (Combobox) for scan types
         self.scan_dropdown = ttk.Combobox(scanning_control_frame, textvariable=self.scan_type
-                                          , values=["2D Scan", "2D F_Line Scan"], state="readonly", style='Large.TCombobox')
+                                          , values=["2D Scan", "2D F_Line Scan", "2D Scan Tip"], state="readonly", style='Large.TCombobox')
         self.scan_dropdown.grid(row=1, column=2, padx=5, pady=5, sticky="ew")
      
         
@@ -482,6 +482,8 @@ class ScannerApp(tk.Tk):
             self.start_scan()  # Execute the fast axis scan
         elif selected_scan == "2D F_Line Scan":
             self.start_2D_line_scan()  # Execute the 2D line scan
+        elif selected_scan == "2D Scan Tip":
+            self.start_tip_scan() # Execute Tip scan
             
         ### Comments on 2D Scan and 1D F_Line Scan seem switched?? ###
             
@@ -605,12 +607,7 @@ class ScannerApp(tk.Tk):
         print(f"Heatmap data saved at {full_path}")
 
             
-    
-            
-
-
-
-            
+          
   
         
     def update_popup(self, popup, im_popup, canvas_popup, selected_value_key):
@@ -941,6 +938,12 @@ class ScannerApp(tk.Tk):
         self.line_scan_2D_thread.start()
 
 
+    def start_tip_scan(self):
+        "Start a new thread for tip scanning"
+        
+        tip_scanning_thread = threading.Thread(target=self.tip_scan)
+        tip_scanning_thread.start()
+        self.status_label.config(text="Scanning")
         
         
     def start_scan(self):
@@ -1197,7 +1200,7 @@ class ScannerApp(tk.Tk):
                    delay_fast = float(self.delay_fast.get())
                    delay_slow = float(self.delay_slow.get())
                    integration_time = float(self.integration_time.get())
-                   module=self.pl_module
+                   module = self.pl_module
                    # Ensure the module is in the correct state before connecting
                    module.connect()
                    module.start_job()
@@ -1754,6 +1757,339 @@ class ScannerApp(tk.Tk):
             self.status_label.config(text="Error")
             self.scanning = False
 
+    def tip_scan(self):
+        """
+        Executes a scanning loop for the AFM tip, updating heatmap data, and managing 
+        scan control logic, including axis selection, motor control, and data fetching from 
+        the selected module (e.g., PL or ODMR). This function handles the entire scan sequence,
+        periodic UI updates, heatmap updates, and optional auto-saving of data.
+ 
+        Arguments:
+            None (this function uses class attributes and UI elements directly for configuration).
+        """
+        
+        start_time_0 = time.time() # get the starting time of the measurement
+        
+        try:
+            
+            # Begin scanning process and update status
+
+            self.scanning = True
+            self.status_label.config(text="Scanning")
+        
+            # Update UI functions for refreshing the display
+            def update_ui():
+              self.canvas.draw_idle()
+              self.update_idletasks()
+            def update_plot(canvas):
+              self.after(0, canvas.draw_idle)
+              self.after(0, self.update_idletasks) # Updating plots in thread
+              
+            # Determine the selected module for scanning (PL or ODMR)
+            selection = self.dropdown_var.get()
+            
+            if selection == 'PL':
+                module = self.pl_module
+              
+            elif selection == 'ODMR':   
+                self.heatmap_data_dict.update({ 
+                    'freq_center': None,
+                    'fwhm': None,
+                    'contrast': None,
+                    'sensitivity': None
+                    })
+    
+                module = self.odmr_module
+                self.odmr_params_confirmed = False
+                self.odmr_popup = ODMRPopup(self)
+                print("printed")
+            
+                # Wait for the user to confirm ODMR parameters
+                while self.odmr_popup.params == {}:
+                    time.sleep(0.1)
+                print("here in ODMR after close ")
+            
+                self.odmr_module.set_odmr_params(self.odmr_popup.params)
+                self.odmr_fit_data = []
+                self.odmr_data = []
+                self.freq_centers= []
+                        
+           
+            module.z_control = self.my_app.asc500.zcontrol
+            module.scannerpos = self.my_app.asc500.scanner 
+           
+            
+           # Check if a measurement is already running       
+            
+            if module.state == 'job_started':
+                module.stop_job()
+               
+            if module.state == 'get_data':
+                module.finish_getting_data()
+            
+            if module.state != 'disconnected':
+                module.disconnect()
+                # Now it's safe to connect and start the job
+          
+        
+        
+            # Get the x,y parameters from the control panel
+            total_X_length = float(self.total_X_length.get())
+            total_Y_length = float(self.total_Y_length.get())
+                        
+            # Get the step size from the caption of the window
+            delta_X = float(self.delta_X.get())
+            delta_Y = float(self.delta_Y.get())
+            
+            # Get the delay time from the control panel
+            delay_fast = float(self.delay_fast.get())
+            delay_slow = float(self.delay_slow.get())
+           
+            # Get the file name and integration time from the control panel
+            file_name = self.file_name.get()
+            module.total_integration_time = int(float(self.integration_time.get()) * u.ms)
+    
+            #corrected stepsizes to ensure an integer number of pixels in the scan
+            steps = [int(round(total_X_length/delta_X)), int(round(total_Y_length/delta_Y))]
+            stepsize = [float(total_X_length/steps[0]), float(total_Y_length/steps[1])]
+            
+            # Save the initial positions
+            x0 = float(self.my_app.ANC.get_output(1)) 
+            y0 = float(self.my_app.ANC.get_output(2))
+            
+            # get the starting x,y values
+            x_start = x0 - total_X_length/2 + stepsize[0]/2
+            x_end = x0 + total_X_length/2 
+            y_start = y0 - total_Y_length/2 + stepsize[1]/2
+            y_end = y0 + total_Y_length/2
+            
+            # print the arrays of x- and y-points that will be measured
+            self.x_array = np.arange(x_start, x_end, stepsize[0])
+            self.y_array = np.arange(y_start, y_end, stepsize[1])
+            print(self.x_array)
+            print(self.y_array)
+            
+            
+            fast_axis = self.fast_axis.get() # 'X' or 'Y'
+            
+            if fast_axis == 'X':
+                [module.fast_steps, module.slow_steps] = steps
+                [delta_fast, delta_slow] = stepsize
+                [fast0, slow0] = [x_start, y_start]
+                
+                
+            elif fast_axis == 'Y':
+                [module.fast_steps, module.slow_steps] = [steps[1], steps[0]]
+                [delta_fast, delta_slow] = [stepsize[1], stepsize[0]]
+                [fast0, slow0] = [y_start, x_start]
+                
+            
+            # Initialize heatmap data
+            module.connect()
+            module.start_job()
+            module.start_fetching()
+            
+            #Initialize heatmap data structure 
+            for key in self.heatmap_data_dict.keys():
+                self.heatmap_data_dict[key] = np.zeros([steps[1], steps[0]])
+                self.heatmap_data_dict[key][:,:] = np.nan
+                    
+            #Reset persisting save path for new scan
+            if hasattr(self, 'persistent_save_path'): 
+                del self.persistent_save_path
+            
+            self.im.set_extent([x0 - total_X_length/2 , x0 + total_X_length/2, y0 - total_Y_length/2, y0 + total_Y_length/2])
+            
+            line_times = []
+    
+            # Main scanning loop 
+            for i in range(module.slow_steps):
+                
+                # start_time = int(time.strftime("%M")) * 60 + int(time.strftime("%S"))
+                slow = float(slow0 + (i)*delta_slow)
+                fast = float(fast0)
+                move_to_start_time=time.time()
+                
+                #Set the positions of slow axis
+                if(fast_axis == 'X'):
+                    #print(slow)
+                    self.my_app.ANC.ramp(2, slow)
+                    self.my_app.ANC_dynamiclabels[1].set(f"{self.my_app.ANC.get_output(2)} V")
+                    time.sleep(0.05)
+
+                elif(fast_axis == 'Y'):
+                    #print(slow)
+                    self.my_app.ANC.ramp(1, slow)
+                    self.my_app.ANC_dynamiclabels[0].set(f"{self.my_app.ANC.get_output(1)} V")
+                    time.sleep(0.05)
+                    
+                   
+                move_to_start_time_end=time.time()
+                
+                line_start_time=move_to_start_time_end-move_to_start_time
+                print(f'line_start_time : {line_start_time}')
+      
+                # Inner loop for the fast axis scanning
+                for j in range(module.fast_steps):
+                    if not self.scanning:
+                        break
+                
+                    fast = float(fast0 + (j)*delta_fast)
+                    
+                    if fast_axis == 'X':
+                        [X, Y] = [fast, slow]
+                        [idx1, idx2] = [i, j]
+                        
+                        #print(fast)
+                        self.my_app.ANC.ramp(1, fast)
+                        self.my_app.ANC_dynamiclabels[0].set(f"{self.my_app.ANC.get_output(1)} V")
+
+                    
+                    elif fast_axis == 'Y': 
+                        [X, Y] = [slow, fast]
+                        [idx1, idx2] = [j, i]
+                        
+                        #print(fast)
+                        self.my_app.ANC.ramp(2, fast)
+                        self.my_app.ANC_dynamiclabels[1].set(f"{self.my_app.ANC.get_output(2)} V")
+
+
+                    
+                    b = time.time()
+                    time.sleep(0.01)
+                    e = time.time()
+                    #print(f'X_fast time passed= {e - b}')
+                
+                    time.sleep(delay_fast)
+                    
+                    #print(f'getdata_using_qua = { time.time()}')
+                    f_idx = i * module.fast_steps + j
+                    module.get_data(f_idx) # Get data from the module after moving
+                    
+                    # check if this is an ODMR module with fitting:
+                    if hasattr(module, "start_fitting_thread"):
+                        module.start_fitting_thread()
+                        threading.Thread(
+                            target=self.update_odmr_plot_2dscan,
+                            args=(module,),
+                            daemon=True
+                        ).start()
+                    else:
+                        # PL module
+                        # no fitting, no plotting
+                        pass
+                
+                    # Access the data dictionary directly from the module object
+                    
+                    
+                    data_dict = module.data_dict
+                    #print(f'after_getting_data= { time.time()}')
+                    
+                    
+                    # Update heatmap data
+                    for key in self.heatmap_data_dict.keys():
+                        self.heatmap_data_dict[key][idx1, idx2] = data_dict.get(key, 0)
+                    
+                    # Update the fitted plot if ODMR
+                    if selection=='ODMR':
+                        
+                        self.update_plot(data_dict.get('x_data'), data_dict.get('y_data'), data_dict.get('fitted_y_data'))
+                        self.odmr_frequencies = data_dict.get('x_data')
+                        self.odmr_data.append([data_dict.get('y_data')])
+                        self.odmr_fit_data.append([data_dict.get('fitted_y_data')])
+                        self.freq_centers.append(data_dict.get('freq_center', np.nan))
+                        
+                        #odmr_spectrum.append('')
+                    
+                    # Update the heatmap display and UI
+                    self.after(0, self.update_displayed_heatmap)
+                    self.after(0, update_ui)
+                    self.update_idletasks()
+                    # Time left estimation
+                    line_end_time = time.time()
+                    line_duration = line_end_time - move_to_start_time
+                    line_times.append(line_duration)
+                    average_line_time = np.mean(line_times)
+                    lines_remaining = module.slow_steps - (i + 1)
+                    minutes_left = (average_line_time * lines_remaining) / 60
+                    self.time_left_label.config(text="{:.3f} ".format(minutes_left))
+                    
+
+                    if self.save_flag.get():  # If auto-save is ON
+                        end_time = time.time()
+                        scantime = end_time - start_time_0
+                        self.headerlines = [f"#Scantype: Stepscan \n#Date: {time.strftime('%Y-%m-%d %H:%M:%S')}", 
+                                            f"\n#Total scanning time: {scantime}", f"\n#Scan direction: {self.fast_axis.get()}", 
+                                            f"\n#X range: {self.x_array[0]} - {self.x_array[-1]} um", f"\n#Y range: {self.y_array[0]} - {self.y_array[-1]} um", 
+                                            f"\n#X pixels: {steps[0]}, pixelsize: {stepsize[0]} um", f"\n#Y pixels: {steps[1]}, pixelsize: {stepsize[1]} um",
+                                            f"\n#Integration time per pixel: {module.total_integration_time/1E6} ms", "\n#Columns:"]
+                       
+                        self.save_heatmap_data(selection=selection)
+                    
+                    #print(f'after_plot = {time.time()}')
+                    
+              
+                               
+                if not self.scanning:
+                    break
+        
+              
+                          
+                # Update expected time left for the scan
+                # finish_time = int(time.strftime("%M")) * 60 + int(time.strftime("%S"))
+                # time.sleep(delay_slow)
+                # expected_time = ((finish_time - start_time) * (1 - i / module.slow_steps) *  module.slow_steps) / 60
+                # self.time_left_label.config(text="{:.3f}".format(expected_time))
+                # self.after(0, update_ui)
+            
+            end_time = time.time()
+            scantime = end_time - start_time_0
+            
+            self.headerlines = [f"#Scantype: Stepscan \n#Date: {time.strftime('%Y-%m-%d %H:%M:%S')}", 
+                                f"\n#Total scanning time: {scantime}", f"\n#Scan direction: {self.fast_axis.get()}", 
+                                f"\n#X range: {self.x_array[0]} - {self.x_array[-1]} um", f"\n#Y range: {self.y_array[0]} - {self.y_array[-1]} um", 
+                                f"\n#X pixels: {steps[0]}, pixelsize: {stepsize[0]} m", f"\n#Y pixels: {steps[1]}, pixelsize: {stepsize[1]} m",
+                                f"\n#Integration time per pixel: {module.total_integration_time/1E6} ms", "\n#Columns:"]
+            
+            if selection == 'ODMR':
+                ODMRheader = ["\n#ODMR Parameters",
+                              f"\n#Frequency range: {np.min(self.odmr_frequencies)} - {np.max(self.odmr_frequencies)} GHz",
+                              f"\n#Number of frequency points: {np.size(self.odmr_frequencies)}", 
+                              f"\n#Number of averages: {module.N_average}"]
+                print(ODMRheader)
+
+                self.headerlines.extend(ODMRheader)
+            
+            # If auto-save is off update the heatmap data 
+            if not self.save_flag.get():
+                print("Auto-save is OFF. Saving heatmap data after scan completion...")
+                self.save_heatmap_data(selection=selection)  
+            
+            if selection =='ODMR':
+                frequencies = module.x_data
+                
+                
+            if module.state == 'job_started':
+                module.stop_job()
+
+            if module.state == 'get_data':
+                  module.finish_getting_data()
+                 
+            if module.state != 'disconnected':
+                module.disconnect()
+                
+
+ 
+            self.my_app.ANC.ramp(1, x0)
+            self.my_app.ANC.ramp(2, y0)
+            self.scanning = False
+            self.status_label.config(text="Idle")        
+
+
+        except Exception as e:
+            print(f"Error during scan: {e}")
+            self.status_label.config(text="Error")
+            self.scanning = False                    
 
         
     def abort_scan(self):
@@ -1765,8 +2101,15 @@ class ScannerApp(tk.Tk):
         self.scanning = False
         self.status_label.config(text="Idle")
         
-        # Stop the motors
-        self.my_app.asc500.scanner.pauseScanner()
+        # find out which scan is being executed
+        selected_scan = self.scan_type.get()
+
+        if selected_scan == "2D Scan" or selected_scan == "2D F_Line Scan":
+           self.my_app.asc500.scanner.pauseScanner()  # Stop the motors
+        
+        elif selected_scan == "2D Scan Tip":
+            self.my_app.ANC_abort_move() # ANC Tip abort move
+    
     
         # Cleanup PL Module
         if hasattr(self, 'pl_module'):
@@ -1779,7 +2122,6 @@ class ScannerApp(tk.Tk):
         # Cleanup ODMR Module
         if hasattr(self, 'odmr_module'):
             self.odmr_module.cleanup()
-            
             
             
             
@@ -1798,26 +2140,6 @@ class ScannerApp(tk.Tk):
             fitted_y_data = module.data_dict.get("fitted_y_data")
         self.update_plot(x_data, y_data, fitted_y_data)        
             
-    def abort_scan(self):
-        """
-        Aborts an ongoing scan by stopping scanning processes, updating the status label,
-        and cleaning up resources for the PL and ODMR modules if they exist.
-        """
-        #self.my_app.closed = True
-        self.scanning = False
-        self.status_label.config(text="Idle")
-        # Stop the motors
-        self.my_app.asc500.scanner.pauseScanner()
-        # Cleanup PL Module
-        if hasattr(self, 'pl_module'):
-            self.pl_module.cleanup()
-        # Cleanup PL Module for linescan
-        if hasattr(self, 'pl_module_linescan'):
-            self.pl_module_linescan.cleanup()
-        # Cleanup ODMR Module
-        if hasattr(self, 'odmr_module'):
-            self.odmr_module.cleanup()
-
 
 
 if __name__ == "__main__":
