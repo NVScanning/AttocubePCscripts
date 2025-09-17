@@ -306,9 +306,6 @@ class ODMRModule:
             except:
                 popt = p0
                 
-            if popt[0] > popt[3]: #switch if the second peak has a lower frequency that the first
-                popt = [popt[3],popt[4],popt[5],popt[0],popt[1],popt[2],popt[6]]
-                
             return popt, ODMRModule.double_lorentzian(x_data, *popt)
     
         elif fit_type == "Triple Lorentzian":
@@ -386,51 +383,29 @@ class ODMRModule:
             popt = [-1, -1, -1, np.mean(self.y_data)]
             fit_status = 'failed'
         self.fitted_y_data = fitted
-        
-        background = popt[-1]
-        
         h = 6.62607015e-34
         g = 2.00231930436256
         mu_B = 9.2740100783e-24
         try:
             center_freq = popt[0]
             fwhm = 2 * abs(popt[2])  # Take absolute to avoid negative widths
-            contrast = popt[1]/background
-            sensitivity = (h * fwhm) / (g * mu_B * contrast * np.sqrt(background))
+            contrast = (np.max(fitted) - np.min(fitted)) / np.max(fitted)
+            I0 = np.max(self.y_data)
+            sensitivity = (h * fwhm) / (g * mu_B * contrast * np.sqrt(I0))
         except:
             center_freq = fwhm = contrast = sensitivity = -1
         elapsed = time.time() - self.job_start_time
-        
-        if self.fit_type == "Single Lorentzian":
-            self.data_dict.update({
-                'fitted_y_data': self.fitted_y_data,
-                'counts [kc/s]': background,
-                'freq_center': center_freq,
-                'fwhm': fwhm,
-                'contrast': contrast,
-                'sensitivity': sensitivity,
-                'time_elapsed': elapsed,
-                'fit_status': fit_status
-            })
-            
-        elif self.fit_type == "Double Lorentzian":
-            contrast_2 = popt[4]/background
-            sensitivity_2 = (h * fwhm) / (g * mu_B * contrast_2 * np.sqrt(background))
-            self.data_dict.update({
-                'fitted_y_data': self.fitted_y_data,
-                'counts [kc/s]': background,
-                'freq_center': popt[0],
-                'freq_center_2': popt[3],
-                'fwhm': 2*abs(popt[2]),
-                'fwhm_2': 2*abs(popt[5]),
-                'contrast': contrast,
-                'contrast_2': contrast_2,
-                'sensitivity': sensitivity,
-                'sensitivity_2': sensitivity_2,
-                'time_elapsed': elapsed,
-                'fit_status': fit_status
-            })
-
+        count_mean = np.mean(self.y_data)
+        self.data_dict.update({
+            'fitted_y_data': self.fitted_y_data,
+            'counts [kc/s]': count_mean,
+            'freq_center': center_freq,
+            'fwhm': fwhm,
+            'contrast': contrast,
+            'sensitivity': sensitivity,
+            'time_elapsed': elapsed,
+            'fit_status': fit_status
+        })
 
     def generate_fake_data(self, x_data, fit_type, center_freq=2875, noise_level=0.01):
         """

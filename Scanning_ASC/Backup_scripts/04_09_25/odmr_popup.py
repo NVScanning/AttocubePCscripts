@@ -47,13 +47,13 @@ class ODMRPopup(tk.Toplevel):
         ttk.Label(self, text="rf_power(dBm)").grid(row=3, column=0, padx=10, pady=5)
         self.rf_power_entry = ttk.Entry(self)
         self.rf_power_entry.grid(row=3, column=1, padx=10, pady=5)
-        self.rf_power_entry.insert(0, "0.5")  # Set initial value for rf_power
+        self.rf_power_entry.insert(0, "10")  # Set initial value for rf_power
 
         # N_average
         ttk.Label(self, text="N_average").grid(row=4, column=0, padx=10, pady=5)
         self.N_average_entry = ttk.Entry(self)
         self.N_average_entry.grid(row=4, column=1, padx=10, pady=5)
-        self.N_average_entry.insert(0, "3000")  # Set initial value for N_average
+        self.N_average_entry.insert(0, "10")  # Set initial value for N_average
         
         ttk.Label(self, text="Fit Type").grid(row=5, column=0, pady=5)
         self.fit_type_combobox = ttk.Combobox(self, values=["Single Lorentzian", "Double Lorentzian","Triple Lorentzian"])

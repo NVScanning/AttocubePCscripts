@@ -62,7 +62,7 @@ class ODMRFitPopup(tk.Toplevel):
         ttk.Label(self.inputs_frame, text="Power(dBm)").grid(row=0, column=6, padx=5, pady=5, sticky="w")
         self.power_entry = ttk.Entry(self.inputs_frame)
         self.power_entry.grid(row=0, column=7, padx=5, pady=5)
-        self.power_entry.insert(0, "0.5")
+        self.power_entry.insert(0, "10")
 
         ttk.Label(self.inputs_frame, text="Fit Type").grid(row=1, column=2, padx=5, pady=5, sticky="w")
         self.fit_type_combobox = ttk.Combobox(self.inputs_frame, values=["Single Lorentzian", "Double Lorentzian", "Triple Lorentzian"])
@@ -72,7 +72,7 @@ class ODMRFitPopup(tk.Toplevel):
         ttk.Label(self.inputs_frame, text="N_avg").grid(row=1, column=4, padx=5, pady=5, sticky="w")
         self.n_avg_entry = ttk.Entry(self.inputs_frame)
         self.n_avg_entry.grid(row=1, column=5, padx=5, pady=5)
-        self.n_avg_entry.insert(0, "3000")
+        self.n_avg_entry.insert(0, "100")
 
         self.start_button = ttk.Button(self.inputs_frame, text="Start", width=10, command=self.start_odmr)
         self.start_button.grid(row=2, column=2, padx=5, pady=10, columnspan=2)
