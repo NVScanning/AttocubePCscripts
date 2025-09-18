@@ -640,26 +640,43 @@ class AscStageApp(ttk.Frame):
         
         for i in range(3):
             
-            mode = self.ANC.do(f"getm {i+1}")
+            mode0 = self.ANC.do(f"getm {i+1}")
+            
+            mode = mode0.find("off")
             
             print(mode)
             
-            if mode != "mode = off":
+            if mode == -1:
+                #print("I will go to offset mode now!!")
                 self.ANC.do(f"setm {i+1} off") #set all axis to offset mode
+                
+            else:
+                print("The axis is already in offset mode!")
     
+
     def ANC_ground_mode(self):
         "Ramps all axis to zero and puts all axis to ground mode, if they are not in ground mode"
 
         for i in range(3):
             
-            mode = self.ANC.do(f"getm {i+1}") # check the mode of all axis
+            mode0 = self.ANC.do(f"getm {i+1}") # check the mode of all axis
             
-            if not mode =="gnd": 
+            mode = mode0.find("gnd")
+            
+            print(mode)
+            
+            if mode == -1: 
                 
                 self.ANC.ramp((i+1), 0) # set all axis zero
                 
                 while float(self.ANC.get_output(i+1, Print=False)) != 0:
-                        time.sleep(0.1) # if the voltage is not zero, wait 
+                    time.sleep(0.1) # if the voltage is not zero, wait 
                         
                 else:
-                        self.ANC.do(f"setm {i+1} gnd") #set all axis to ground mode        
+                    #print("I will go to ground mode now!!")    
+                    self.ANC.do(f"setm {i+1} gnd") #set all axis to ground mode
+                    
+                
+            else:
+                print("The axis is already in ground mode!")
+
