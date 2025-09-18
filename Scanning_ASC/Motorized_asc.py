@@ -240,6 +240,8 @@ class AscStageApp(ttk.Frame):
             Z_smaller = ttk.Button(master=ANC_frame, text="\u2BC7", style="Std.TButton", command=lambda: threading.Thread(target=self.ANC_set_step(3,-1)).start())
             Z_larger = ttk.Button(master=ANC_frame, text="\u2BC8", style="Std.TButton", command=lambda: threading.Thread(target=self.ANC_set_step(3,1)).start())
             Button_abort = ttk.Button(master=ANC_frame, text="Abort move", style = 'Std.TButton', width=10, command=self.ANC_abort_move)
+            Button_OffMode = ttk.Button(master=ANC_frame, text="Offset mode", style = 'Std.TButton', width=10, command=self.ANC_offset_mode)
+            Button_GndMode = ttk.Button(master=ANC_frame, text="Ground mode", style = 'Std.TButton', width=10, command=self.ANC_ground_mode)
             Button_MoveX.grid(column=3,row=2)
             Button_MoveY.grid(column=3,row=3)
             Button_MoveZ.grid(column=3,row=4)
@@ -249,7 +251,9 @@ class AscStageApp(ttk.Frame):
             Y_larger.grid(column=6, row=3)
             Z_smaller.grid(column=5, row=4)
             Z_larger.grid(column=6, row=4)
+            Button_GndMode.grid(column=7, row=2, padx=10)
             Button_abort.grid(column=7, row=3, padx=10)
+            Button_OffMode.grid(column=7, row=4, padx=10)
             
         else:
             ANC_title = ttk.Label(master=ANC_frame, text="ANC not connected", font=("Helvetica",12))
@@ -630,3 +634,32 @@ class AscStageApp(ttk.Frame):
         self.ANC.abort = True
         self.ANC.moving = False
         
+        
+    def ANC_offset_mode(self):
+        "Puts all axis to offset mode, if they are not already in offset mode"
+        
+        for i in range(3):
+            
+            mode = self.ANC.do(f"getm {i+1}")
+            
+            print(mode)
+            
+            if mode != "mode = off":
+                self.ANC.do(f"setm {i+1} off") #set all axis to offset mode
+    
+    def ANC_ground_mode(self):
+        "Ramps all axis to zero and puts all axis to ground mode, if they are not in ground mode"
+
+        for i in range(3):
+            
+            mode = self.ANC.do(f"getm {i+1}") # check the mode of all axis
+            
+            if not mode =="gnd": 
+                
+                self.ANC.ramp((i+1), 0) # set all axis zero
+                
+                while float(self.ANC.get_output(i+1, Print=False)) != 0:
+                        time.sleep(0.1) # if the voltage is not zero, wait 
+                        
+                else:
+                        self.ANC.do(f"setm {i+1} gnd") #set all axis to ground mode        
