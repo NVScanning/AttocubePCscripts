@@ -1914,14 +1914,14 @@ class ScannerApp(tk.Tk):
                 if(fast_axis == 'X'):
                     #print(slow)
                     self.my_app.ANC.ramp(2, slow)
-                    self.my_app.ANC_dynamiclabels[1].set(f"{self.my_app.ANC.get_output(2)} V")
                     time.sleep(0.05)
+                    self.my_app.ANC_dynamiclabels[1].set(f"{self.my_app.ANC.get_output(2)} V")
 
                 elif(fast_axis == 'Y'):
                     #print(slow)
                     self.my_app.ANC.ramp(1, slow)
-                    self.my_app.ANC_dynamiclabels[0].set(f"{self.my_app.ANC.get_output(1)} V")
                     time.sleep(0.05)
+                    self.my_app.ANC_dynamiclabels[0].set(f"{self.my_app.ANC.get_output(1)} V")
                     
                    
                 move_to_start_time_end=time.time()
@@ -2079,9 +2079,18 @@ class ScannerApp(tk.Tk):
                 module.disconnect()
                 
 
- 
+            # go to the starting position 
             self.my_app.ANC.ramp(1, x0)
             self.my_app.ANC.ramp(2, y0)
+            
+            # display the starting position
+            while (float(self.my_app.ANC.get_output(1, Print=False)) != x0) and (float(self.my_app.ANC.get_output(2, Print=False)) != y0) :
+                time.sleep(0.1) # if the voltage is not there yet, wait 
+                    
+            else:
+                self.my_app.ANC_dynamiclabels[0].set(f"{self.my_app.ANC.get_output(1, Print=False)} V")
+                self.my_app.ANC_dynamiclabels[1].set(f"{self.my_app.ANC.get_output(2, Print=False)} V")                
+            
             self.scanning = False
             self.status_label.config(text="Idle")        
 
