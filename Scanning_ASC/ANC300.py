@@ -85,20 +85,26 @@ class ANC300App(ttk.Frame):
         self.moving = True
         t1 = time.time()
     
-        print(f"target: {voltage}")
+        #print(f"target: {voltage}")
         if float(voltage) > self.limits or float(voltage) < 0:
             print(f"Voltage outside of limits (0, {self.limits}V)")
             return
         
-        self.do("echo off")
-        V_0 = float(self.do(f"geto {axis}", sleeptime=0.1).split()[2]) #starting value
-        print(f"start: {V_0}")
+        self.do("echo off", Print=False)
+        V_0 = float(self.do(f"geto {axis}", sleeptime=0.1, Print = False).split()[2]) #starting value
+        #print(f"start: {V_0}")
+        
+        
+        #step0 = int(np.ceil((np.absolute(voltage - V_0))/0.2))
+        #stepsize = float((np.absolute(voltage - V_0))/(step0+1))
+        #print (step0, stepsize)
+        #print(np.linspace(V_0, voltage, step0, endpoint = True) )
         
         
         if (V_0 == voltage) != True:
         
-            steps = np.arange(V_0, float(voltage), 0.1*np.sign(voltage-V_0)) + 0.1*np.sign(voltage-V_0)  #split into steps of 0.05 V
-            print(steps)
+            steps = np.arange(V_0, float(voltage), 0.1*np.sign(np.sign(voltage-V_0))) + 0.1*np.sign(voltage-V_0)  #split into steps of 0.05 V
+            #print(steps)
             
             for step in steps:
                 
@@ -119,12 +125,12 @@ class ANC300App(ttk.Frame):
                     break
         
             
-        self.do(f"geta {axis}")
+        self.do(f"geta {axis}", Print = False)
         self.moving = False
         t2 = time.time()
         
-        if (V_0 == voltage) != True:
-            print(f"time: {t2-t1}s, avg: {(t2-t1)/(voltage-V_0)}s")
+        #if (V_0 == voltage) != True:
+        #    print(f"time: {t2-t1}s, avg: {(t2-t1)/(voltage-V_0)}s")
         
         
     def step(self, axis, step):
