@@ -240,16 +240,17 @@ class ScannerApp(tk.Tk):
         self.fig3 = Figure(figsize=(5, 4))
         self.ax3 = self.fig3.add_subplot(111)
         self.canvas3 = FigureCanvasTkAgg(self.fig3, master=self.line_graph_frame)
-        self.canvas3.get_tk_widget().config(width=200, height=200)
+        self.canvas3.get_tk_widget().config(width=400, height=200)
         self.canvas3.draw()
         self.canvas3.get_tk_widget().pack(side=tk.LEFT, fill=tk.BOTH, expand=False)
         
 
 
-        self.fig4= Figure(figsize=(5, 4))
+        self.fig4= Figure(figsize=(5, 2))
         self.ax4 = self.fig4.add_subplot(111)
+        self.ax4.tick_params("y", rotation=270)
         self.canvas4 = FigureCanvasTkAgg(self.fig4, master=self.line_graph_frame)
-        self.canvas4.get_tk_widget().config(width=300,height=200)
+        self.canvas4.get_tk_widget().config(width=100,height=200)
         self.canvas4.draw()
         self.canvas4.get_tk_widget().pack(side=tk.RIGHT, fill=tk.BOTH, expand=False)
         self.initialize_optimize_graph()
@@ -533,6 +534,35 @@ class ScannerApp(tk.Tk):
             else:
                 self.im.set_clim(np.nanmin(self.heatmap_data_dict[selected_value_key]), np.nanmax(self.heatmap_data_dict[selected_value_key]))
             self.canvas.draw_idle()
+
+    def update_displayed_heatmap_opt(self, selection='PL'):
+        """
+        Updates the heatmap data for all key elements with the logic to distinguish PL and ODMR module.
+
+        """
+        selected_scan = self.scan_type.get()
+        selected_value_key = self.selected_value_var.get()
+       
+        if selected_value_key not in ["counts [kc/s]", "AFM height [um]"] and self.dropdown_var.get() == 'PL':
+            print(f"PL module does not contain {selected_value_key} measurement.")
+            self.selected_value_var.set("counts [kc/s]")
+            return
+                
+        # elif selected_value_key != 'counts [kc/s]' and selected_scan == '2D F_Line Scan':
+        #     print(f"Linescan cannot show {selected_value_key} measurement.")
+        #     self.selected_value_var.set("counts [kc/s]")
+        #     return
+        
+        if self.heatmap_data_dict[selected_value_key] is not None:
+            self.im3.set_data(self.heatmap_data_dict[selected_value_key])
+            
+            if selection == 'ODMR' and selected_value_key == 'freq_center':
+                self.im3.set_clim(np.min(self.odmr_frequencies), np.max(self.odmr_frequencies))
+            
+            else:
+                self.im3.set_clim(np.nanmin(self.heatmap_data_dict[selected_value_key]), np.nanmax(self.heatmap_data_dict[selected_value_key]))
+            self.canvas3.draw_idle()
+
 
     def popup_heatmap(self):
         """
@@ -1175,284 +1205,420 @@ class ScannerApp(tk.Tk):
 
     
     def optimize(self):
-           self.scanning = True
-           self.status_label.config(text="Scanning")
-           
-           def update_ui():
-               self.canvas.draw_idle()
-               self.update_idletasks()
-           
-           def update_plot(canvas):
-               self.after(0, canvas.draw_idle)
-               self.after(0, self.update_idletasks)
-           
-           try:
-               
-               entry_value = self.entry_box.get()
-               if entry_value.isdigit() and int(entry_value) > 0:
-                   print(f"Focal axis optimization will be done for period: {entry_value} ...")
-           
-                   # Get parameters
-                   total_X_length = float(self.total_X_length.get())
-                   total_Y_length = float(self.total_Y_length.get())
-                   delta_X = float(self.delta_X.get())
-                   delta_Y = float(self.delta_Y.get())
-                   delay_fast = float(self.delay_fast.get())
-                   delay_slow = float(self.delay_slow.get())
-                   integration_time = float(self.integration_time.get())
-                   module = self.pl_module
-                   # Ensure the module is in the correct state before connecting
-                   module.connect()
-                   module.start_job()
-                   module.start_fetching()  # Initialize data handles
-                   
-                   x0, y0 = self.my_app.get_xy_position()
-           
-                   #Determine which initial position is the fast and the slow position, then moves to get ready to start the scan.     
-                   if(self.fast_axis.get() == 'X'):
-                       fast0 = x0
-                       y_int = y0
-                       fast_correct = fast0 - total_X_length / 2
-                       print(f'fast correct: {fast_correct}')
-                       self.my_app.move_x_to(fast_correct)
-                       time.sleep(0.01)
-
-                   elif(self.fast_axis.get() == 'Y'):
-                       fast0=y0
-                       x_int=x0
-                
-                       fast_correct = fast0 - total_X_length / 2
-                       self.my_app.move_y_to(fast_correct)
-                       time.sleep(0.01)
-             
-                   else:
-                       print("Invalid Axis Entered")
-                       
-                   
-                   if(self.slow_axis.get() == 'X'):
-                       slow0 = x0
-                       y_int=y0
+        """
+        Scans the tip in x and y direction and, finds the maximum of the measurement, 
+        moves to that spot and then measures in z direction.
+        """
+        
+        start_time_0 = time.time() # get the starting time of the measurement
+        
+        try:
             
-                       slow_correct = slow0 - total_Y_length / 2
-                       self.my_app.move_x_to(slow_correct)
-                       time.sleep(0.01)
-                   
-                           
-                       
-                   elif(self.slow_axis.get() == 'Y'):
-                       slow0=y0
-                       x_int=x0
-                  
-                       slow_correct = slow0 - total_Y_length / 2
-                       self.my_app.move_y_to(slow_correct)
-                       time.sleep(0.01)
-                    
-                   else:
-                       print("Invalid Axis Entered")
-                                   
-                       
-                  
-                   
-                   # Calculate the number of steps
-                   fast_steps = int(total_X_length / delta_X)
-                   slow_steps = int(total_Y_length / delta_Y)
-           
-                   heatmap_data = np.zeros((slow_steps, fast_steps))
-                   x = np.linspace(0, 1, fast_steps)
-                   y = np.linspace(0, 1, slow_steps)
-                   X, Y = np.meshgrid(x, y)
-                   true_mu_x = 2 / 3
-                   true_mu_y = 2 / 3
-                   true_sigma_x = 0.3
-                   true_sigma_y = 0.3
-                   true_rho = 0
-                   Z_true = module.twoD_Gaussian((X, Y), true_mu_x, true_mu_y, true_sigma_x, true_sigma_y, true_rho)
-                   noise = 0.01 * np.random.normal(size=Z_true.shape)
-                   Z_true = Z_true + noise
-                   z_true_flat = Z_true.flatten()
-                   original_shape = (slow_steps, fast_steps)
-                   z_true_reshaped = np.reshape(z_true_flat, original_shape)
-                   self.im.set_extent(np.array([fast0 - total_X_length / 2, fast0 + total_X_length / 2, slow0 - total_Y_length / 2, slow0 + total_Y_length / 2])/1e-6)
-                   slow = slow0 - total_Y_length/2
-                   
-                   if(self.slow_axis.get() == 'X'):
-         
+            # Begin scanning process and update status
+
+            self.scanning = True
+            self.status_label.config(text="Scanning")
+        
+            # Update UI functions for refreshing the display
+            def update_ui():
+              self.canvas3.draw_idle()
+              self.update_idletasks()
+            def update_plot(canvas):
+              self.after(0, canvas3.draw_idle)
+              self.after(0, self.update_idletasks) # Updating plots in thread
+              
+            # Determine the selected module for scanning (PL or ODMR)
+            selection = self.dropdown_var.get()
+            
+            if selection == 'PL':
+                module = self.pl_module
+              
+            elif selection == 'ODMR':   
+                self.heatmap_data_dict.update({ 
+                    'freq_center': None,
+                    'fwhm': None,
+                    'contrast': None,
+                    'sensitivity': None
+                    })
     
-                       slow_correct = slow0 - total_Y_length / 2
-                       self.my_app.move_x_to(slow_correct)
-                       time.sleep(0.01)
-                    
-                       
-                   elif(self.slow_axis.get() == 'Y'):
-
-                  
-                       slow_correct = slow0 - total_Y_length / 2
-                       self.my_app.move_y_to(slow_correct)
-                       time.sleep(0.01)
-                   
-                   else:
-                       print("Invalid Axis Entered")
-                   
-                   print(f'slow_steps{slow_steps}')
-                   
-                   for i in range(slow_steps):
-                       print(i)
-                       start_time = int(time.strftime("%M"))*60 + int(time.strftime("%S"))
-                       slow = slow0 - total_Y_length/2 + (i+1) * delta_Y
+                module = self.odmr_module
+                self.odmr_params_confirmed = False
+                self.odmr_popup = ODMRPopup(self)
+                print("printed")
+            
+                # Wait for the user to confirm ODMR parameters
+                while self.odmr_popup.params == {}:
+                    time.sleep(0.1)
+                print("here in ODMR after close ")
+            
+                self.odmr_module.set_odmr_params(self.odmr_popup.params)
+                self.odmr_fit_data = []
+                self.odmr_data = []
+                self.freq_centers= []
                         
-                       if(self.slow_axis.get() == 'X'):
-             
-                           self.my_app.move_x_to(slow)
-                           time.sleep(0.01)
+           
+            module.z_control = self.my_app.asc500.zcontrol
+            module.scannerpos = self.my_app.asc500.scanner 
+           
+            
+           # Check if a measurement is already running       
+            
+            if module.state == 'job_started':
+                module.stop_job()
+               
+            if module.state == 'get_data':
+                module.finish_getting_data()
+            
+            if module.state != 'disconnected':
+                module.disconnect()
+                # Now it's safe to connect and start the job
+          
+        
+        
+            # Get the x,y parameters from the control panel
+            total_X_length = float(self.total_X_length.get())
+            total_Y_length = float(self.total_Y_length.get())
+                        
+            # Get the step size from the caption of the window
+            delta_X = float(self.delta_X.get())
+            delta_Y = float(self.delta_Y.get())
+            
+            # Get the delay time from the control panel
+            delay_fast = float(self.delay_fast.get())
+            delay_slow = float(self.delay_slow.get())
+           
+            # Get the file name and integration time from the control panel
+            file_name = self.file_name.get()
+            module.total_integration_time = int(float(self.integration_time.get()) * u.ms)
+    
+            #corrected stepsizes to ensure an integer number of pixels in the scan
+            steps = [int(round(total_X_length/delta_X)), int(round(total_Y_length/delta_Y))]
+            stepsize = [float(total_X_length/steps[0]), float(total_Y_length/steps[1])]
+            
+            # Save the initial positions
+            x0 = float(self.my_app.ANC.get_output(1)) 
+            y0 = float(self.my_app.ANC.get_output(2))
+            
+            # get the starting x,y values
+            x_start = x0 - total_X_length/2 + stepsize[0]/2
+            x_end = x0 + total_X_length/2 
+            y_start = y0 - total_Y_length/2 + stepsize[1]/2
+            y_end = y0 + total_Y_length/2
+            
+            # print the arrays of x- and y-points that will be measured
+            self.x_array = np.arange(x_start, x_end, stepsize[0])
+            self.y_array = np.arange(y_start, y_end, stepsize[1])
+            print(self.x_array)
+            print(self.y_array)
+            
+            
+            fast_axis = self.fast_axis.get() # 'X' or 'Y'
+            
+            if fast_axis == 'X':
+                [module.fast_steps, module.slow_steps] = steps
+                [delta_fast, delta_slow] = stepsize
+                [fast0, slow0] = [x_start, y_start]
+                
+                
+            elif fast_axis == 'Y':
+                [module.fast_steps, module.slow_steps] = [steps[1], steps[0]]
+                [delta_fast, delta_slow] = [stepsize[1], stepsize[0]]
+                [fast0, slow0] = [y_start, x_start]
+                
+            
+            # Initialize heatmap data
+            module.connect()
+            module.start_job()
+            module.start_fetching()
+            
+            #Initialize heatmap data structure 
+            for key in self.heatmap_data_dict.keys():
+                self.heatmap_data_dict[key] = np.zeros([steps[1], steps[0]])
+                self.heatmap_data_dict[key][:,:] = np.nan
+                    
+            #Reset persisting save path for new scan
+            if hasattr(self, 'persistent_save_path'): 
+                del self.persistent_save_path
+            
+            self.im3.set_extent([x0 - total_X_length/2 , x0 + total_X_length/2, y0 - total_Y_length/2, y0 + total_Y_length/2])
+            
+            line_times = []
+    
+            # Main scanning loop 
+            for i in range(module.slow_steps):
+                
+                # start_time = int(time.strftime("%M")) * 60 + int(time.strftime("%S"))
+                slow = float(slow0 + (i)*delta_slow)
+                fast = float(fast0)
+                move_to_start_time=time.time()
+                
+                #Set the positions of slow axis
+                if(fast_axis == 'X'):
+                    #print(slow)
+                    self.my_app.ANC.ramp(2, slow)
+                    time.sleep(0.05)
+                    self.my_app.ANC_dynamiclabels[1].set(f"{self.my_app.ANC.get_output(2)} V")
+
+                elif(fast_axis == 'Y'):
+                    #print(slow)
+                    self.my_app.ANC.ramp(1, slow)
+                    time.sleep(0.05)
+                    self.my_app.ANC_dynamiclabels[0].set(f"{self.my_app.ANC.get_output(1)} V")
+                    
+                   
+                move_to_start_time_end=time.time()
+                
+                line_start_time=move_to_start_time_end-move_to_start_time
+                print(f'line_start_time : {line_start_time}')
+      
+                # Inner loop for the fast axis scanning
+                for j in range(module.fast_steps):
+                    if not self.scanning:
+                        break
+                
+                    fast = float(fast0 + (j)*delta_fast)
+                    
+                    if fast_axis == 'X':
+                        [X, Y] = [fast, slow]
+                        [idx1, idx2] = [i, j]
+                        
+                        #print(fast)
+                        self.my_app.ANC.ramp(1, fast)
+                        self.my_app.ANC_dynamiclabels[0].set(f"{self.my_app.ANC.get_output(1)} V")
+
+                    
+                    elif fast_axis == 'Y': 
+                        [X, Y] = [slow, fast]
+                        [idx1, idx2] = [j, i]
+                        
+                        #print(fast)
+                        self.my_app.ANC.ramp(2, fast)
+                        self.my_app.ANC_dynamiclabels[1].set(f"{self.my_app.ANC.get_output(2)} V")
+
+
+                    
+                    b = time.time()
+                    time.sleep(0.01)
+                    e = time.time()
+                    #print(f'X_fast time passed= {e - b}')
+                
+                    time.sleep(delay_fast)
+                    
+                    #print(f'getdata_using_qua = { time.time()}')
+                    f_idx = i * module.fast_steps + j
+                    module.get_data(f_idx) # Get data from the module after moving
+                    
+                    # check if this is an ODMR module with fitting:
+                    if hasattr(module, "start_fitting_thread"):
+                        module.start_fitting_thread()
+                        threading.Thread(
+                            target=self.update_odmr_plot_2dscan,
+                            args=(module,),
+                            daemon=True
+                        ).start()
+                    else:
+                        # PL module
+                        # no fitting, no plotting
+                        pass
+                
+                    # Access the data dictionary directly from the module object
+                    
+                    
+                    data_dict = module.data_dict
+                    #print(f'after_getting_data= { time.time()}')
+                    
+                    
+                    # Update heatmap data
+                    for key in self.heatmap_data_dict.keys():
+                        self.heatmap_data_dict[key][idx1, idx2] = data_dict.get(key, 0)
+                    
+                    # Update the fitted plot if ODMR
+                    if selection=='ODMR':
+                        
+                        self.update_plot(data_dict.get('x_data'), data_dict.get('y_data'), data_dict.get('fitted_y_data'))
+                        self.odmr_frequencies = data_dict.get('x_data')
+                        self.odmr_data.append([data_dict.get('y_data')])
+                        self.odmr_fit_data.append([data_dict.get('fitted_y_data')])
+                        self.freq_centers.append(data_dict.get('freq_center', np.nan))
+                        
+                        #odmr_spectrum.append('')
+                    
+                    # Update the heatmap display and UI
+                    self.after(0, self.update_displayed_heatmap_opt)
+                    self.after(0, update_ui)
+                    self.update_idletasks()
+                    # Time left estimation
+                    line_end_time = time.time()
+                    line_duration = line_end_time - move_to_start_time
+                    line_times.append(line_duration)
+                    average_line_time = np.mean(line_times)
+                    lines_remaining = module.slow_steps - (i + 1)
+                    minutes_left = (average_line_time * lines_remaining) / 60
+                    self.time_left_label.config(text="{:.3f} ".format(minutes_left))
+                    
+
+                    if self.save_flag.get():  # If auto-save is ON
+                        end_time = time.time()
+                        scantime = end_time - start_time_0
+                        self.headerlines = [f"#Scantype: Stepscan \n#Date: {time.strftime('%Y-%m-%d %H:%M:%S')}", 
+                                            f"\n#Total scanning time: {scantime}", f"\n#Scan direction: {self.fast_axis.get()}", 
+                                            f"\n#X range: {self.x_array[0]} - {self.x_array[-1]} um", f"\n#Y range: {self.y_array[0]} - {self.y_array[-1]} um", 
+                                            f"\n#X pixels: {steps[0]}, pixelsize: {stepsize[0]} um", f"\n#Y pixels: {steps[1]}, pixelsize: {stepsize[1]} um",
+                                            f"\n#Integration time per pixel: {module.total_integration_time/1E6} ms", "\n#Columns:"]
                        
-                           
-                       elif(self.slow_axis.get() == 'Y'):
+                        self.save_heatmap_data(selection=selection)
+              
+                               
+                if not self.scanning:
+                    break
+        
+            end_time = time.time()
+            scantime = end_time - start_time_0
+            
+            self.headerlines = [f"#Scantype: Stepscan \n#Date: {time.strftime('%Y-%m-%d %H:%M:%S')}", 
+                                f"\n#Total scanning time: {scantime}", f"\n#Scan direction: {self.fast_axis.get()}", 
+                                f"\n#X range: {self.x_array[0]} - {self.x_array[-1]} um", f"\n#Y range: {self.y_array[0]} - {self.y_array[-1]} um", 
+                                f"\n#X pixels: {steps[0]}, pixelsize: {stepsize[0]} m", f"\n#Y pixels: {steps[1]}, pixelsize: {stepsize[1]} m",
+                                f"\n#Integration time per pixel: {module.total_integration_time/1E6} ms", "\n#Columns:"]
+            
+            if selection == 'ODMR':
+                ODMRheader = ["\n#ODMR Parameters",
+                              f"\n#Frequency range: {np.min(self.odmr_frequencies)} - {np.max(self.odmr_frequencies)} GHz",
+                              f"\n#Number of frequency points: {np.size(self.odmr_frequencies)}", 
+                              f"\n#Number of averages: {module.N_average}"]
+                print(ODMRheader)
+
+                self.headerlines.extend(ODMRheader)
+            
+            # If auto-save is off update the heatmap data 
+            if not self.save_flag.get():
+                print("Auto-save is OFF. Saving heatmap data after scan completion...")
+                self.save_heatmap_data(selection=selection)  
+            
+            if selection =='ODMR':
+                frequencies = module.x_data
+                
+            
+            # go to the starting position 
+            self.my_app.ANC.ramp(1, x0)
+            self.my_app.ANC.ramp(2, y0)
+        
+            # display the starting position
+            while (float(self.my_app.ANC.get_output(1, Print=False)) != x0) and (float(self.my_app.ANC.get_output(2, Print=False)) != y0) :
+                time.sleep(0.1) # if the voltage is not there yet, wait 
+                    
+            else:
+                self.my_app.ANC_dynamiclabels[0].set(f"{self.my_app.ANC.get_output(1, Print=False)} V")
+                self.my_app.ANC_dynamiclabels[1].set(f"{self.my_app.ANC.get_output(2, Print=False)} V")      
+                
+            
+            # get the counts
+            counts = self.heatmap_data_dict['counts [kc/s]']
+
+            # Find the index of highest counts
+            
+            # print(np.argmax(counts))
+            ind = np.unravel_index(np.argmax(counts, axis=None), counts.shape)
+            #print(ind)          
+            
+            # find x and y values of highest counts
+            x_maxC = self.x_array[(ind[1])]
+            y_maxC = self.y_array[(ind[0])]
+            
+            print(x_maxC, y_maxC)
+            
+            self.my_app.ANC.ramp(1, x_maxC)
+            self.my_app.ANC.ramp(2, y_maxC)
+        
+            # display the starting position
+            while (float(self.my_app.ANC.get_output(1, Print=False)) != x_maxC) and (float(self.my_app.ANC.get_output(2, Print=False)) != y_maxC) :
+                time.sleep(0.1) # if the voltage is not there yet, wait 
+                    
+            else:
+                self.my_app.ANC_dynamiclabels[0].set(f"{self.my_app.ANC.get_output(1, Print=False)} V")
+                self.my_app.ANC_dynamiclabels[1].set(f"{self.my_app.ANC.get_output(2, Print=False)} V")
+            
+            
+            ### Perform a z-scan
+            
+            # Define the scanning values
+            total_Z_length  = 10
+            delta_Z         = 0.5
+            z0              = self.my_app.ANC.get_output(3, Print = False)
+            z_start         = z0 - total_Z_length/2 + delta_Z/2
+            z_end           = z0 + total_Z_length/2
+            self.z_array    = np.arange(z_start, z_end, delta_Z)
+            
+            print(z0, z_start, delta_Z, self.z_array)
+            
+            counts_z = []
+            
+            # main scanning loop 
+            for i in range(len(self.z_array)):
+                
+                # move to z values and display
+                self.my_app.ANC.ramp(3, self.z_array[i])
+                time.sleep(0.05)
+                self.my_app.ANC_dynamiclabels[2].set(f"{self.my_app.ANC.get_output(3)} V")
+                
+                # measure the counts
+                f_idx = module.fast_steps*module.slow_steps + i
+                module.get_data(f_idx)
+                
+                
+                counts_z = np.append(counts_z, module.data_dict['counts [kc/s]'])
+                
+                # Update the fitted plot if ODMR
+                if selection=='ODMR':
+                    
+                    self.update_plot(data_dict.get('x_data'), data_dict.get('y_data'), data_dict.get('fitted_y_data'))
+                    self.odmr_frequencies = data_dict.get('x_data')
+                    self.odmr_data.append([data_dict.get('y_data')])
+                    self.odmr_fit_data.append([data_dict.get('fitted_y_data')])
+                    self.freq_centers.append(data_dict.get('freq_center', np.nan))
+                  
+                self.ax4.plot(counts_z, self.z_array[:i+1])
+                self.canvas4.draw_idle()
+                self.update_idletasks()
+            
+            # find z values of highest counts
+            i_maxC = np.argmax(counts_z)
+            z_maxC = self.z_array[i_maxC] 
+            
+            print(i_maxC, z_maxC)
+            
+            # move to the z position of the highest counts
+            self.my_app.ANC.ramp(3, z_maxC)
+
+            # display the final postition
+            while (float(self.my_app.ANC.get_output(3, Print=False)) != float(round(z_maxC, 1))):
+                time.sleep(0.1) # if the voltage is not there yet, wait
+                
+            else:
+                self.my_app.ANC_dynamiclabels[2].set(f"{self.my_app.ANC.get_output(3)} V")
+            
+                
+            if module.state == 'job_started':
+                module.stop_job()
+
+            if module.state == 'get_data':
+                  module.finish_getting_data()
                  
-                           self.my_app.move_y_to(slow)
-                           time.sleep(0.01)
-                       
-                       else:
-                           
-                           print("Invalid Axis Entered")
-                       
-                       for j in range(fast_steps):
-                   
-                           # Check if scanning process is aborted
-                           if not self.scanning:
-                               break
-                   
-                           # Move the stage
-                           fast = fast0-total_X_length/2 + (j+1) * delta_X
-                           #print(fast)
-                           if(self.fast_axis.get() == 'X'):
-                          
-                               self.my_app.move_x_to(fast)
-                               time.sleep(0.01)
-                            
-                                   
-                           elif(self.fast_axis.get() == 'Y'):
-                  
-                               self.my_app.move_y_to(fast)
-                               time.sleep(0.01)
-                  
-                           else:
-                               print("Invalid Axis Entered")
-                   
-                           time.sleep(delay_fast)
-           
-                           data_dict = module.get_data()
-                           apd_signal = data_dict['counts [kc/s]']
-                           heatmap_data[i, j] = z_true_reshaped[i, j]
-           
-                           self.im.set_data(heatmap_data)
-                           data_min = np.min(heatmap_data)
-                           data_max = np.max(heatmap_data)
-                           self.im.set_clim(data_min, data_max)
-                           self.apd_signal_label.config(text="{:.3f}".format(apd_signal))
-                           self.after(0, update_ui)
-                      
-                       if not self.scanning:
-                           break
+            if module.state != 'disconnected':
+                module.disconnect()
+            
+            
+            self.scanning = False
+            self.status_label.config(text="Idle")        
+
+
+        except Exception as e:
+            print(f"Error during scan: {e}")
+            self.status_label.config(text="Error")
+            self.scanning = False 
+            
+            
   
-                       if(self.fast_axis.get() == 'X'):
-                            fast0 = x0
-                            y_int = y0
-                            fast_correct = fast0 - total_X_length / 2
-                            print(f'fast correct: {fast_correct}')
-                            self.my_app.move_x_to(fast_correct)
-                            time.sleep(0.01)
-                          
-                                
-                       elif(self.fast_axis.get() == 'Y'):
-                            fast0=y0
-                            x_int=x0
-                     
-                            fast_correct = fast0 - total_X_length / 2
-                            self.my_app.move_y_to(fast_correct)
-                            time.sleep(0.01)
-                 
-                       else:
-                           print("Invalid Axis Entered")
-           
-                       finish_time = int(time.strftime("%M")) * 60 + int(time.strftime("%S"))
-                       time.sleep(delay_slow)
-                       expected_time = ((finish_time - start_time) * (1 - i / slow_steps) * slow_steps) / 60
-                       self.time_left_label.config(text="{:.3f}".format(expected_time))
-                       self.after(0, update_ui)
-           
-                   if not self.scanning:
-                       return
-           
-                   xdata = np.vstack((X.ravel(), Y.ravel()))
-                   zdata = heatmap_data.ravel()
-           
-                   initial_guess = [fast0 + total_X_length / 2, slow0 + total_Y_length / 2, 0.5, 0.5, 0]
-                   popt, pcov = curve_fit(module.twoD_Gaussian, xdata, zdata, p0=initial_guess)
-                   xopt, yopt, sigma_x_opt, sigma_y_opt, amplitude_opt = popt
-                   Optf = xopt * total_X_length + (fast0 - total_X_length / 2)
-                   Opts = yopt * total_Y_length + (slow0 - total_Y_length / 2)
-                   print(f'Xopt:{xopt}')
-                   print(f'Yopt:{yopt}')
-           
-                   Z_optimized = module.twoD_Gaussian((X, Y), *popt)
-           
-           
-                   if(self.fast_axis.get() == 'X'):
-                       fast0 = x0
-                       y_int = y0
-                       fast_correct = xopt * total_X_length + fast0 - total_X_length / 2
-                       print(f'fast correct: {fast_correct}')
-                       self.my_app.move_x_to(fast_correct)
-                       time.sleep(0.01)
-                
-                           
-                   elif(self.fast_axis.get() == 'Y'):
-                       fast0=y0
-                       x_int=x0
-                
-                       fast_correct = fast0 - total_X_length / 2
-                       self.my_app.move_y_to(fast_correct)
-                       time.sleep(0.01)
-             
-                   else:
-                       print("Invalid Axis Entered")
-           
-                   if(self.slow_axis.get() == 'X'):
-                       slow0 = x0
-                       y_int=y0
-            
-                       slow_correct = yopt * total_Y_length + slow0 - total_Y_length / 2
-                       self.my_app.move_x_to(slow_correct)
-                       time.sleep(0.01)
-                   
-                           
-                       
-                   elif(self.slow_axis.get() == 'Y'):
-                       slow0=y0
-                       x_int=x0
-                  
-                       slow_correct = yopt * total_Y_length + slow0 - total_Y_length / 2
-                       self.my_app.move_y_to(slow_correct)
-                       time.sleep(0.01)
-                   else:
-                      print("Invalid Axis Entered")
-           
-                   self.Optfast_label.config(text=f"F: {Optf:.5f}")
-                   self.OptSlow_label.config(text=f"S: {Opts:.5f}")
-           
-
-           except Exception as e:
-               print(f"Error during optimization: {e}")
-               module.cleanup()
-           finally:
-               self.scanning = False
-               self.status_label.config(text="Idle") 
-               self.time_left_label.config(text="Idle") 
-
-            
-
-
-   
 
     def scan_loop(self):
         """
