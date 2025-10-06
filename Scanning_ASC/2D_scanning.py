@@ -237,25 +237,26 @@ class ScannerApp(tk.Tk):
 
         
         # Put the Optimise graph in the frame
-        self.fig3 = Figure(figsize=(5, 4))
+        self.fig3 = Figure(figsize=(6, 5))
         self.ax3 = self.fig3.add_subplot(111)
+
         self.canvas3 = FigureCanvasTkAgg(self.fig3, master=self.line_graph_frame)
-        self.canvas3.get_tk_widget().config(width=400, height=200)
+        self.canvas3.get_tk_widget().config(width=500, height=450)
         self.canvas3.draw()
-        self.canvas3.get_tk_widget().pack(side=tk.LEFT, fill=tk.BOTH, expand=False)
-        
-
-
-        self.fig4= Figure(figsize=(5, 2))
-        self.ax4 = self.fig4.add_subplot(111)
-        self.ax4.tick_params("y", rotation=270)
-        self.canvas4 = FigureCanvasTkAgg(self.fig4, master=self.line_graph_frame)
-        self.canvas4.get_tk_widget().config(width=100,height=200)
-        self.canvas4.draw()
-        self.canvas4.get_tk_widget().pack(side=tk.RIGHT, fill=tk.BOTH, expand=False)
+        self.canvas3.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
         self.initialize_optimize_graph()
+        self.fig3.tight_layout()
 
-                
+
+
+        self.fig4 = Figure(figsize=(6, 2))
+        self.ax4 = self.fig4.add_subplot(111)
+#        self.ax4.tick_params("y", rotation=270)      
+        self.canvas4 = FigureCanvasTkAgg(self.fig4, master=self.line_graph_frame)
+        self.canvas4.get_tk_widget().config(width=500,height=100)
+        self.canvas4.draw()
+        self.canvas4.get_tk_widget().pack(side=tk.BOTTOM, fill=tk.BOTH, expand=False)
+        self.fig4.tight_layout()
 
     def on_close(self):
         """
@@ -325,13 +326,18 @@ class ScannerApp(tk.Tk):
         
         ttk.Label(scanning_control_frame, text="Probe").grid(row=7, column=2, padx=5, pady=5, sticky="w")
         self.probe = ttk.Entry(scanning_control_frame, width=20)
-        self.probe.insert(0, " ")
+        self.probe.insert(0, "")
         self.probe.grid(row=7, column=3, padx=5, pady=5, sticky="w")
         
         ttk.Label(scanning_control_frame, text="Sample").grid(row=7, column=0, padx=5, pady=5, sticky="w")
         self.sample = ttk.Entry(scanning_control_frame, width=20)
-        self.sample.insert(0, " ")
+        self.sample.insert(0, "")
         self.sample.grid(row=7, column=1, padx=5, pady=5, sticky="w")
+        
+        ttk.Label(scanning_control_frame, text="Temp (K)").grid(row=0, column=2, padx=0, pady=0, sticky="w")
+        self.temp = ttk.Entry(scanning_control_frame, width=10)
+        self.temp.insert(0, "300")
+        self.temp.grid(row=0, column=2, padx=80, pady=0, sticky="w")        
         
         #self.file_name = ttk.Entry()  # File name input entry
         current_directory = os.getcwd()
@@ -356,7 +362,7 @@ class ScannerApp(tk.Tk):
         
         ttk.Label(scanning_control_frame, text="Integration Time (ms)").grid(row=5, column=2, padx=5, pady=5, sticky="w")
         self.integration_time = ttk.Entry(scanning_control_frame, width=10)
-        self.integration_time.insert(0, "0.1")
+        self.integration_time.insert(0, "100")
         self.integration_time.grid(row=5, column=3, padx=5, pady=5, sticky="w")
         
         
@@ -1273,7 +1279,11 @@ class ScannerApp(tk.Tk):
                 module.disconnect()
                 # Now it's safe to connect and start the job
           
-        
+            
+            # update the scanning limits of the voltage of the tip 
+            temp = float(self.temp.get())            
+            self.my_app.ANC.update_T(temp)
+            print("The voltage limit for the tip is {} V !".format(self.my_app.ANC.limits)) 
         
             # Get the x,y parameters from the control panel
             total_X_length = float(self.total_X_length.get())
@@ -1542,17 +1552,17 @@ class ScannerApp(tk.Tk):
             ### Perform a z-scan
             
             # Define the scanning values
-            total_Z_length  = 10
-            delta_Z         = 0.5
+            total_Z_length  = 6    
+            delta_Z         = 1
             z0              = self.my_app.ANC.get_output(3, Print = False)
-            z_start         = z0 - total_Z_length/2 + delta_Z/2
-            z_end           = z0 + total_Z_length/2
+            z_start         = z0 - total_Z_length/2 
+            z_end           = z0 + total_Z_length/2 + delta_Z/2
             self.z_array    = np.arange(z_start, z_end, delta_Z)
             
             print(z0, z_start, delta_Z, self.z_array)
             
             counts_z = []
-            
+                
             # main scanning loop 
             for i in range(len(self.z_array)):
                 
@@ -1577,7 +1587,8 @@ class ScannerApp(tk.Tk):
                     self.odmr_fit_data.append([data_dict.get('fitted_y_data')])
                     self.freq_centers.append(data_dict.get('freq_center', np.nan))
                   
-                self.ax4.plot(counts_z, self.z_array[:i+1])
+                self.ax4.clear()
+                self.ax4.plot(self.z_array[:i+1], counts_z)
                 self.canvas4.draw_idle()
                 self.update_idletasks()
             
@@ -1589,15 +1600,16 @@ class ScannerApp(tk.Tk):
             
             # move to the z position of the highest counts
             self.my_app.ANC.ramp(3, z_maxC)
-
+    
             # display the final postition
             while (float(self.my_app.ANC.get_output(3, Print=False)) != float(round(z_maxC, 1))):
                 time.sleep(0.1) # if the voltage is not there yet, wait
                 
             else:
                 self.my_app.ANC_dynamiclabels[2].set(f"{self.my_app.ANC.get_output(3)} V")
+        
             
-                
+            
             if module.state == 'job_started':
                 module.stop_job()
 
@@ -1984,8 +1996,9 @@ class ScannerApp(tk.Tk):
             module.z_control = self.my_app.asc500.zcontrol
             module.scannerpos = self.my_app.asc500.scanner 
            
+
             
-           # Check if a measurement is already running       
+            # Check if a measurement is already running       
             
             if module.state == 'job_started':
                 module.stop_job()
@@ -1997,7 +2010,10 @@ class ScannerApp(tk.Tk):
                 module.disconnect()
                 # Now it's safe to connect and start the job
           
-        
+            # update the scanning limits of the voltage of the tip 
+            temp = float(self.temp.get())            
+            self.my_app.ANC.update_T(temp)
+            print("The voltage limit for the tip is {} V !".format(self.my_app.ANC.limits)) 
         
             # Get the x,y parameters from the control panel
             total_X_length = float(self.total_X_length.get())
