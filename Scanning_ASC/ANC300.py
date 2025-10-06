@@ -36,8 +36,8 @@ class ANC300App(ttk.Frame):
         self.y_pos = self.get_output(2, Print=False)
         self.z_pos = self.get_output(3, Print=False)
         
-        self.limits_RT = 45 #upper limit for room temperature [V]
-        self.limits_LT = 112.5 #upper limit for low temperature [V]
+        self.limits_RT = 60 #upper limit for room temperature [V]
+        self.limits_LT = 150 #upper limit for low temperature [V]
         #self.range_xyRT = 30
         #self.range_xyLT = 15
         
