@@ -10,6 +10,7 @@ import scipy.stats
 import time
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
+from matplotlib.widgets import RectangleSelector
 import os
 
 
@@ -247,7 +248,9 @@ class ScannerApp(tk.Tk):
         self.initialize_optimize_graph()
         self.fig3.tight_layout()
 
-
+        # calls on the click function when selecting a rectangular area in the optimization heat plot
+        self.rect_selector = RectangleSelector(self.ax3, self.rectselect)
+        
 
         self.fig4 = Figure(figsize=(6, 2))
         self.ax4 = self.fig4.add_subplot(111)
@@ -1205,10 +1208,62 @@ class ScannerApp(tk.Tk):
         fitted_y_data1 : Array of fitted photon count values for the fitted curve.
         """
         self.after(0, lambda: self.ODMR_Graph_Update(x_data, y_data1, fitted_y_data1))
-    
         
-   
+        
+    def rectselect(self, eclick, erelease):
+        """
+        Click function selecting a rectangular region in the optimize plot.
+        The AFM tip will ramp to the center of the rectangle and the total x and y scan range will be adjusted.
+        """
+    
+        # get the extent and center of the selected rectangular area
+    
+        extent = self.rect_selector.extents
+        [x_min, x_max, y_min, y_max] = extent
+        
+        
+        print("Extents:", extent)
 
+        # round the values of x0 and y0 to ramp
+        x0 = round(self.rect_selector.center[0], 1)
+        y0 = round(self.rect_selector.center[1], 1)
+
+
+        # move to the center of the rectangular region and print the values
+        self.my_app.ANC.ramp(1, x0)
+        self.my_app.ANC.ramp(2, y0)
+    
+        # display the center position
+        while (float(self.my_app.ANC.get_output(1, Print=False)) != x0) and (float(self.my_app.ANC.get_output(2, Print=False)) != y0) :
+            time.sleep(0.1) # if the voltage is not there yet, wait 
+                
+        else:
+            self.my_app.ANC_dynamiclabels[0].set(f"{self.my_app.ANC.get_output(1, Print=False)} V")
+            self.my_app.ANC_dynamiclabels[1].set(f"{self.my_app.ANC.get_output(2, Print=False)} V")    
+
+        
+        # adjust total x length and total y length of the measurement
+        
+        dY = round(y_max-y_min, 1)
+        dX = round(x_max-x_min, 1)
+        
+        self.total_X_length.delete(0,tk.END)
+        self.total_X_length.insert(0,dX)
+        
+        self.total_Y_length.delete(0,tk.END)
+        self.total_Y_length.insert(0,dY)
+
+        # Zoom the selected part
+        # Set xlim range for plot as xmin to xmax
+        # of rectangle selector box.
+        # self.ax3.set_xlim(extent[0], extent[1])
+    
+        # Set ylim range for plot as ymin to ymax
+        # of rectangle selector box.
+        # self.ax3.set_ylim(extent[2], extent[3])
+    
+    
+    
     
     def optimize(self):
         """
