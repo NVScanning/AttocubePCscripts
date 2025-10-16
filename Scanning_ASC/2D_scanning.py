@@ -1422,13 +1422,13 @@ class ScannerApp(tk.Tk):
                     #print(slow)
                     self.my_app.ANC.ramp(2, slow)
                     time.sleep(0.05)
-                    self.my_app.ANC_dynamiclabels[1].set(f"{self.my_app.ANC.get_output(2)} V")
+                    self.my_app.ANC_dynamiclabels[1].set(f"{self.my_app.ANC.get_output(2, Print=False)} V")
 
                 elif(fast_axis == 'Y'):
                     #print(slow)
                     self.my_app.ANC.ramp(1, slow)
                     time.sleep(0.05)
-                    self.my_app.ANC_dynamiclabels[0].set(f"{self.my_app.ANC.get_output(1)} V")
+                    self.my_app.ANC_dynamiclabels[0].set(f"{self.my_app.ANC.get_output(1, Print=False)} V")
                     
                    
                 move_to_start_time_end=time.time()
@@ -1449,7 +1449,7 @@ class ScannerApp(tk.Tk):
                         
                         #print(fast)
                         self.my_app.ANC.ramp(1, fast)
-                        self.my_app.ANC_dynamiclabels[0].set(f"{self.my_app.ANC.get_output(1)} V")
+                        self.my_app.ANC_dynamiclabels[0].set(f"{self.my_app.ANC.get_output(1, Print=False)} V")
 
                     
                     elif fast_axis == 'Y': 
@@ -1458,7 +1458,7 @@ class ScannerApp(tk.Tk):
                         
                         #print(fast)
                         self.my_app.ANC.ramp(2, fast)
-                        self.my_app.ANC_dynamiclabels[1].set(f"{self.my_app.ANC.get_output(2)} V")
+                        self.my_app.ANC_dynamiclabels[1].set(f"{self.my_app.ANC.get_output(2, Print=False)} V")
 
 
                     
@@ -1562,20 +1562,7 @@ class ScannerApp(tk.Tk):
             
             if selection =='ODMR':
                 frequencies = module.x_data
-                
-            
-            # go to the starting position 
-            self.my_app.ANC.ramp(1, x0)
-            self.my_app.ANC.ramp(2, y0)
-        
-            # display the starting position
-            while (float(self.my_app.ANC.get_output(1, Print=False)) != x0) and (float(self.my_app.ANC.get_output(2, Print=False)) != y0) :
-                time.sleep(0.1) # if the voltage is not there yet, wait 
-                    
-            else:
-                self.my_app.ANC_dynamiclabels[0].set(f"{self.my_app.ANC.get_output(1, Print=False)} V")
-                self.my_app.ANC_dynamiclabels[1].set(f"{self.my_app.ANC.get_output(2, Print=False)} V")      
-                
+ 
             
             # get the counts
             counts = self.heatmap_data_dict['counts [kc/s]']
@@ -1596,10 +1583,11 @@ class ScannerApp(tk.Tk):
             self.my_app.ANC.ramp(2, y_maxC)
         
             # display the starting position
-            while (float(self.my_app.ANC.get_output(1, Print=False)) != x_maxC) and (float(self.my_app.ANC.get_output(2, Print=False)) != y_maxC) :
+            while (abs(float(self.my_app.ANC.get_output(1, Print=False)) - x_maxC ) > stepsize[0]) and ( abs(float(self.my_app.ANC.get_output(2, Print=False)) - y_maxC ) > stepsize[1]) :
                 time.sleep(0.1) # if the voltage is not there yet, wait 
                     
             else:
+                time.sleep(0.5)
                 self.my_app.ANC_dynamiclabels[0].set(f"{self.my_app.ANC.get_output(1, Print=False)} V")
                 self.my_app.ANC_dynamiclabels[1].set(f"{self.my_app.ANC.get_output(2, Print=False)} V")
             
@@ -1607,43 +1595,53 @@ class ScannerApp(tk.Tk):
             ### Perform a z-scan
             
             # Define the scanning values
-            total_Z_length  = 6    
-            delta_Z         = 1
-            z0              = self.my_app.ANC.get_output(3, Print = False)
+            total_Z_length  = 20    
+            delta_Z         = 0.5
+            z0              = 20
             z_start         = z0 - total_Z_length/2 
             z_end           = z0 + total_Z_length/2 + delta_Z/2
             self.z_array    = np.arange(z_start, z_end, delta_Z)
             
-            print(z0, z_start, delta_Z, self.z_array)
+           #print(z0, z_start, delta_Z, self.z_array)
             
             counts_z = []
-                
+            
+            self.my_app.ANC.ramp(3, z0)
+            
+            while (abs(float(self.my_app.ANC.get_output(3, Print=False)) - z0) > delta_Z):
+                time.sleep(0.1) # if the voltage is not there yet, wait 
+                    
+            else:
+                time.sleep(0.5)
+                self.my_app.ANC_dynamiclabels[2].set(f"{self.my_app.ANC.get_output(3, Print=False)} V")           
+
+            
             # main scanning loop 
-            for i in range(len(self.z_array)):
+            for j in range(len(self.z_array)):
                 
                 # move to z values and display
-                self.my_app.ANC.ramp(3, self.z_array[i])
+                self.my_app.ANC.ramp(3, self.z_array[j])
                 time.sleep(0.05)
-                self.my_app.ANC_dynamiclabels[2].set(f"{self.my_app.ANC.get_output(3)} V")
+                self.my_app.ANC_dynamiclabels[2].set(f"{self.my_app.ANC.get_output(3, Print=False)} V")
                 
                 # measure the counts
-                f_idx = module.fast_steps*module.slow_steps + i
+                f_idx = module.fast_steps*module.slow_steps + j
                 module.get_data(f_idx)
                 
                 
                 counts_z = np.append(counts_z, module.data_dict['counts [kc/s]'])
                 
-                # Update the fitted plot if ODMR
-                if selection=='ODMR':
+                # # Update the fitted plot if ODMR
+                # if selection=='ODMR':
                     
-                    self.update_plot(data_dict.get('x_data'), data_dict.get('y_data'), data_dict.get('fitted_y_data'))
-                    self.odmr_frequencies = data_dict.get('x_data')
-                    self.odmr_data.append([data_dict.get('y_data')])
-                    self.odmr_fit_data.append([data_dict.get('fitted_y_data')])
-                    self.freq_centers.append(data_dict.get('freq_center', np.nan))
+                #     self.update_plot(data_dict.get('x_data'), data_dict.get('y_data'), data_dict.get('fitted_y_data'))
+                #     self.odmr_frequencies = data_dict.get('x_data')
+                #     self.odmr_data.append([data_dict.get('y_data')])
+                #     self.odmr_fit_data.append([data_dict.get('fitted_y_data')])
+                #     self.freq_centers.append(data_dict.get('freq_center', np.nan))
                   
                 self.ax4.clear()
-                self.ax4.plot(self.z_array[:i+1], counts_z)
+                self.ax4.plot(self.z_array[:j+1], counts_z)
                 self.canvas4.draw_idle()
                 self.update_idletasks()
             
@@ -1651,17 +1649,17 @@ class ScannerApp(tk.Tk):
             i_maxC = np.argmax(counts_z)
             z_maxC = self.z_array[i_maxC] 
             
-            print(i_maxC, z_maxC)
+            #print(i_maxC, z_maxC)
             
             # move to the z position of the highest counts
             self.my_app.ANC.ramp(3, z_maxC)
     
-            # display the final postition
-            while (float(self.my_app.ANC.get_output(3, Print=False)) != float(round(z_maxC, 1))):
-                time.sleep(0.1) # if the voltage is not there yet, wait
-                
+            while (abs(float(self.my_app.ANC.get_output(3, Print=False)) - z_maxC) > delta_Z):
+                time.sleep(0.1) # if the voltage is not there yet, wait 
+                    
             else:
-                self.my_app.ANC_dynamiclabels[2].set(f"{self.my_app.ANC.get_output(3)} V")
+                time.sleep(0.5)
+                self.my_app.ANC_dynamiclabels[2].set(f"{self.my_app.ANC.get_output(3, Print=False)} V")    
         
             
             
@@ -2321,12 +2319,14 @@ class ScannerApp(tk.Tk):
             self.my_app.ANC.ramp(2, y0)
             
             # display the starting position
-            while (float(self.my_app.ANC.get_output(1, Print=False)) != x0) and (float(self.my_app.ANC.get_output(2, Print=False)) != y0) :
+            while (abs(float(self.my_app.ANC.get_output(1, Print=False)) - x0 ) > stepsize[0]) and ( abs(float(self.my_app.ANC.get_output(2, Print=False)) - y0 ) > stepsize[1]) :
                 time.sleep(0.1) # if the voltage is not there yet, wait 
                     
             else:
+                time.sleep(0.5)
                 self.my_app.ANC_dynamiclabels[0].set(f"{self.my_app.ANC.get_output(1, Print=False)} V")
-                self.my_app.ANC_dynamiclabels[1].set(f"{self.my_app.ANC.get_output(2, Print=False)} V")                
+                self.my_app.ANC_dynamiclabels[1].set(f"{self.my_app.ANC.get_output(2, Print=False)} V")
+                          
             
             self.scanning = False
             self.status_label.config(text="Idle")        
