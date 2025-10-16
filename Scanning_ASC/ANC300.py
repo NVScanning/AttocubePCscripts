@@ -101,10 +101,13 @@ class ANC300App(ttk.Frame):
         #print(np.linspace(V_0, voltage, step0, endpoint = True) )
         
         
-        if (V_0 == voltage) != True:
+        # check if the stepsize is bigger than the ramp step
+        if (abs(V_0-voltage) >= 0.2):
         
-            steps = np.arange(V_0, float(voltage), 0.1*np.sign(np.sign(voltage-V_0))) + 0.1*np.sign(voltage-V_0)  #split into steps of 0.05 V
-            #print(steps)
+            #corrected stepsizes to ensure an integer number ramp steps
+            stepsize = float((voltage-V_0)/int(round(abs(V_0-voltage)/0.2)))
+            steps = np.round((np.arange(V_0, voltage, stepsize) + stepsize), 2)  #split into steps of 0.2 V
+        
             
             for step in steps:
                 
@@ -123,7 +126,11 @@ class ANC300App(ttk.Frame):
                     
                 else:
                     break
-        
+                
+        # if the stepsize is smaller than the ramp step, go straight to the voltage        
+        elif(abs(V_0-voltage) < 0.2 and abs(V_0-voltage) > 0):
+            self.do(f"seta {axis} {voltage}", Print=False, sleeptime=0.02)
+
             
         self.do(f"geta {axis}", Print = False)
         self.moving = False
