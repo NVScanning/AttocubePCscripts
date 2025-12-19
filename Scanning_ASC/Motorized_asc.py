@@ -46,14 +46,14 @@ class AscStageApp(ttk.Frame):
         self.asc500.base.startServer() #Connect to server - opens a new one if none exists       
         self.asc500.data.setDataEnable(1)
         self.asc500.base.setOutputsWaiting(1)
-        self.asc500.scanner.setOutputsActive()
+        #self.asc500.scanner.setOutputsActive()
         
         #Check configured channels
         # for chnNo in range(13):
         #     print(chnNo, self.asc500.data.getChannelConfig(chnNo))
         
         #Temperature and Travel limits
-        self.asc500.limits.setTemperature(293.2) #kelvin
+        #self.asc500.limits.setTemperature(293.2) #kelvin
         self.X_Travel_lim=self.asc500.limits.getXActualTravelLimit()
         self.Y_Travel_lim=self.asc500.limits.getYActualTravelLimit()
         #self.Z_Travel_lim=self.asc500.limits.getZActualTravelLimit()
@@ -641,11 +641,8 @@ class AscStageApp(ttk.Frame):
         for i in range(3):
             
             mode0 = self.ANC.do(f"getm {i+1}")
-            
             mode = mode0.find("off")
-            
-            print(mode)
-            
+                        
             if mode == -1:
                 #print("I will go to offset mode now!!")
                 self.ANC.do(f"setm {i+1} off") #set all axis to offset mode
@@ -660,11 +657,8 @@ class AscStageApp(ttk.Frame):
         for i in range(3):
             
             mode0 = self.ANC.do(f"getm {i+1}") # check the mode of all axis
-            
             mode = mode0.find("gnd")
-            
-            print(mode)
-            
+                        
             if mode == -1: 
                 
                 self.ANC.ramp((i+1), 0) # set all axis zero
@@ -674,6 +668,7 @@ class AscStageApp(ttk.Frame):
                         
                 else:
                     #print("I will go to ground mode now!!")    
+                    self.ANC_dynamiclabels[i].set(f"{self.ANC.get_output(i+1, Print=False)} V")
                     self.ANC.do(f"setm {i+1} gnd") #set all axis to ground mode
                     
                 

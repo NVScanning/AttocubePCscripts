@@ -36,7 +36,7 @@ octave = "octave1"
 # The elements used to test the ports of the Octave
 elements = ["qe1"]
 IF = 70e6  # The IF frequency
-LO = 2.80e9  # The LO frequency
+LO = 2.35e9  # The LO frequency
 
 # The configuration used here
 config = {
@@ -163,7 +163,7 @@ config = {
                     "LO_frequency": LO,
                     "LO_source": "internal",  # can be external or internal. internal is the default
                     "output_mode": "triggered",  # can be: "always_on" / "always_off"/ "triggered" / "triggered_reversed". "always_off" is the default
-                    "gain": -10,  # can be in the range [-20 : 0.5 : 20]dB
+                    "gain": -5,  # can be in the range [-20 : 0.5 : 20]dB
                 },
                 2: {
                     "LO_frequency": LO,

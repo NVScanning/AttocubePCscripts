@@ -41,7 +41,7 @@ class ANC300App(ttk.Frame):
         #self.range_xyRT = 30
         #self.range_xyLT = 15
         
-        self.update_T(293) #set initial temperature to 293K and update voltage limits accordingly
+        self.update_T(4) #set initial temperature to 293K and update voltage limits accordingly
         #self.conversion_xy = self.limits/self.range_xy
         
     def connect(self, host, port): #connect to the machine
@@ -58,7 +58,7 @@ class ANC300App(ttk.Frame):
     def update_T(self, temp):
         self.T = float(temp)
         self.limits = self.limits_LT + (temp-4)*(self.limits_LT-self.limits_RT)/(4-300) #temperature dependent limit [V]
-        #print(self.limits)
+        print(f"limits: {self.limits}" )
         
     def do(self, command, Print=True, sleeptime=0.05): #send a command to the machine
         cmd = command + "\n"

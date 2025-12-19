@@ -24,6 +24,7 @@ with program() as cw_odmr:
     update_frequency("NV", 50*u.MHz)
     
     with infinite_loop_():
+        play("laser_ON", "AOM1", duration=10000*u.us)
         play('cw'*amp(1), 'NV',duration=readout_len * u.ns)
 
 

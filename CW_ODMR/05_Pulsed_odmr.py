@@ -10,16 +10,17 @@ import time as time_module
 # Parameters
 ##################
 
-f_vec = np.arange(65 * u.MHz, 75 * u.MHz, 0.25 * u.MHz)  # Sweep narrower range
-mw_amp = 0.1 # Start lower, adjust
+f_vec = np.arange(-30 * u.MHz, 30 * u.MHz, 1 * u.MHz)  # Sweep narrower range
+mw_amp = 2.5 # Start lower, adjust
 
 # Parameters Definition
-init_laser_len = 5000*u.ns  # laser duration length [ns]
-mw_len =164 # ns, short MW pulse x4 clock cycles 
-readout_laser_len = 600 * u.ns  # Short readout for best contrast
+init_laser_len = 500*u.ns  # laser duration length [ns]
+#mw_len =150 # ns, short MW pulse x4 clock cycles 
+mw_len = 0.5*u.us
+readout_laser_len = 200 * u.ns  # Short readout for best contrast
 
-wait_between_runs = 50_000  # [ns]
-n_avg = 50_000
+wait_between_runs = 5_000  # [ns]
+n_avg = 500_000
 
 ###################
 # The QUA program #
@@ -42,15 +43,16 @@ with program() as pulsed_odmr:
 
             # Spin Initialization Laser Pulse
             play("laser_ON", "AOM1", duration=init_laser_len)
-            wait(wait_for_initialization, "AOM1")
+            wait(init_laser_len, "AOM1")
 
             # MW pulse - short
-            play("x180" * amp(mw_amp), "NV", duration=mw_len)
+            play("cw" * amp(mw_amp), "NV", duration=mw_len)
 
             align()
 
             # Laser Readout Pulse
-            play("laser_ON", "AOM1", duration=init_laser_len)
+            play("laser_ON", "AOM1", duration=readout_laser_len)
+            #wait(1*u.us, "AOM1")
             measure("readout", "SPCM1", None, time_tagging.analog(times, readout_laser_len, counts))
             save(counts, counts_st)
 
@@ -62,7 +64,7 @@ with program() as pulsed_odmr:
             wait(wait_for_initialization, "AOM1")
             play("x180" * amp(0), "NV", duration=mw_len)
             align()
-            play("laser_ON", "AOM1")
+            play("laser_ON", "AOM1", duration=readout_laser_len)
             measure("readout", "SPCM1", None, time_tagging.analog(times, readout_laser_len, counts_dark))
             save(counts_dark, counts_dark_st)
 

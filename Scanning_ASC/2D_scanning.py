@@ -1595,9 +1595,9 @@ class ScannerApp(tk.Tk):
             ### Perform a z-scan
             
             # Define the scanning values
-            total_Z_length  = 20    
-            delta_Z         = 0.5
-            z0              = 20
+            total_Z_length  = 100    
+            delta_Z         = 1
+            z0              = 50
             z_start         = z0 - total_Z_length/2 
             z_end           = z0 + total_Z_length/2 + delta_Z/2
             self.z_array    = np.arange(z_start, z_end, delta_Z)

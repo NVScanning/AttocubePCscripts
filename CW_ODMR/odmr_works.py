@@ -37,7 +37,7 @@ import time
 
 # Frequency vector
 f_vec = np.arange(-70 * u.MHz, 70 * u.MHz, 0.5 * u.MHz)
-n_avg = 10  # number of averages
+n_avg = 100  # number of averages
 m_avg=100
 readout_len = long_meas_len_1  # Readout duration for this experiment
 

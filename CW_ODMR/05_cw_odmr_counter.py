@@ -23,19 +23,64 @@ from configuration_with_octave_Last import *
 import numpy as np
 import os
 import time as time_module
+from scipy.optimize import curve_fit
 
+
+@staticmethod
+def lorentzian(x, x0, a, gamma, bg):
+    
+    """
+    Single Lorentzian function.
+    Parameters:
+    x  : array-like, The frequency values.
+    x0 : float, The center frequency of the dip.
+    a  : float, The amplitude (depth) of the dip.
+    gamma : float, The full-width at half maximum (FWHM).
+    bg : float, Background offset.
+    Returns:
+    y : array-like, The computed Lorentzian function values.
+    """
+    return -abs(a) * (gamma ** 2 / ((x - x0) ** 2 + gamma ** 2)) + bg
+
+def fit_lorentzian(x_data, y_data):
+    """
+    Perform Lorentzian fitting (single, double, or triple) on ODMR data.
+
+    Parameters:
+    - x_data: frequency array (MHz).
+    - y_data: corresponding PL counts (kc/s).
+    - fit_type: fit model ("Single Lorentzian", "Double Lorentzian", "Triple Lorentzian").
+    - center_freq: expected ODMR center (used for initial guess symmetry).
+
+    Returns:
+    - popt: optimized fit parameters.
+    - fitted_y: fitted Lorentzian curve evaluated over x_data.
+    """
+    p0 = [x_data[np.where(y_data==np.min(y_data))][0],np.max(y_data)-np.min(y_data),5,np.max(y_data)]
+    print(p0)
+
+    popt, _ = curve_fit(lorentzian, x_data, y_data, p0=p0, maxfev=10000)
+    return popt, lorentzian(x_data, *popt)
 
 ###################
 # The QUA program #
 ###################
 
 # Frequency vector
-#f_vec = np.arange(-50 * u.MHz, 50 * u.MHz, 0.5 * u.MHz)
-f_vec = np.arange(20 * u.MHz, 120 * u.MHz, 0.5 * u.MHz)
+f_vec = np.arange(75 * u.MHz, 125 * u.MHz, 0.5 * u.MHz)
+#f_vec = np.arange(70 * u.MHz,  120* u.MHz, 0.5 * u.MHz)
+#f_abs = np.arange(2.35*u.GHz, 2.4*u.GHz, 0.25*u.MHz)
+#f_vec = f_abs - NV_LO_freq
 #f_vec = np.array([0*u.MHz])
 n_avg = 1000000  # number of averages
 readout_len = long_meas_len_1  # Readout duration for this experiment
-mw_amp = 0.5
+mw_amp = 1.5
+wait_between_runs = 15*u.us
+phi = '58' #in plane
+theta = '-45' #z angle
+B = 15 #absolute value of B in mT
+
+#f_vec = [100 * u.MHz]
 
 with program() as cw_odmr:
     times = declare(int, size=100)  # QUA vector for storing the time-tags
@@ -49,6 +94,7 @@ with program() as cw_odmr:
     n_st = declare_stream()  # stream for number of iterations
 
     with for_(n, 0, n < n_avg, n + 1):
+        #wait(50*u.us)
         with for_(*from_array(f, f_vec)):
             # Update the frequency of the digital oscillator linked to the element "NV"
             update_frequency("NV", f)
@@ -58,7 +104,7 @@ with program() as cw_odmr:
             play("cw" * amp(mw_amp), "NV", duration=readout_len * u.ns)
             # ... and the laser pulse simultaneously (the laser pulse is delayed by 'laser_delay_1')
             play("laser_ON", "AOM1", duration=readout_len * u.ns)
-            wait(1_000 * u.ns, "SPCM1")  # so readout don't catch the first part of spin reinitialization
+            wait(500 * u.ns, "SPCM1")  # so readout don't catch the first part of spin reinitialization
             # Measure and detect the photons on SPCM1
             measure("long_readout", "SPCM1", None, time_tagging.analog(times, readout_len, counts))
 
@@ -72,7 +118,7 @@ with program() as cw_odmr:
             play("cw" * amp(0), "NV", duration=readout_len * u.ns)
             # ... and the laser pulse simultaneously (the laser pulse is delayed by 'laser_delay_1')
             play("laser_ON", "AOM1", duration=readout_len * u.ns)
-            wait(1_000 * u.ns, "SPCM1")  # so readout don't catch the first part of spin reinitialization
+            wait(500 * u.ns, "SPCM1")  # so readout don't catch the first part of spin reinitialization
             measure("long_readout", "SPCM1", None, time_tagging.analog(times, readout_len, counts))
 
             save(counts, counts_dark_st)  # save counts on stream
@@ -130,11 +176,18 @@ else:
         # Plot data
         ax1.cla()
         ax2.cla()
-        ax1.plot((NV_LO_freq * 0 + f_vec) / u.MHz, counts / 1000 / (readout_len * 1e-9), 'o', label="photon counts")
-        ax1.plot((NV_LO_freq * 0 + f_vec) / u.MHz, counts_dark / 1000 / (readout_len * 1e-9), label="dark counts")
+        ax1.plot((NV_LO_freq * 1 + f_vec) / u.MHz, (counts) / 1000 / (readout_len * 1e-9), 'o', label="photon counts")
+        #ax1.plot((NV_LO_freq * 1 + f_vec) / u.MHz, counts_dark / 1000 / (readout_len * 1e-9), label="dark counts")
+        try:
+            p, fit = fit_lorentzian((NV_LO_freq * 1 + f_vec) / u.MHz, (counts) / 1000 / (readout_len * 1e-9))
+        except:
+            pass
+            
+        ax1.plot((NV_LO_freq * 1 + f_vec) / u.MHz, fit, 'r', label=f'frequency: {round(p[0])}')
+        #ax1.text(1,1,f'frequency: {p[0]}',transform=ax1.transAxes)
         new_counts = counts_handle.fetch_all() 
-        print("value")
-        print(new_counts["value"] )
+        #print("value")
+        #print(new_counts["value"] )
         counts2 = np.append(counts2,(new_counts["value"] / 1000 / (readout_len * 1e-9) ))
         time = np.append(time,new_counts["timestamp"] / u.s)  # Convert timestams to seconds
         ax1.set_xlabel("MW frequency [MHz]")
@@ -153,9 +206,9 @@ else:
     
     qm.octave.set_rf_output_mode("NV", RFOutputMode.off)
 
-    directory = f"//WXPC724/Share/Data/ODMRnearSample/20250225"
+    directory = f"//WXPC724/Share/Data/A-T09-23-Int/Bfield"
     # Create the full path for saving the data, adding a .txt extension
-    full_path = os.path.join(directory, f"{time_module.strftime('%Y%m%d-%H%M-%S')}_InContact_AboveSample2_mw_amp_0{mw_amp*10}")  
+    full_path = os.path.join(directory, f"{time_module.strftime('%Y%m%d-%H%M-%S')}_ODMR_{phi}_{theta}_deg_{B}mT")  
     #Ensure the directory exists
     os.makedirs(directory, exist_ok=True)
     
@@ -163,4 +216,5 @@ else:
     counts = counts / 1000 / (readout_len * 1e-9)
     counts_dark = counts_dark / 1000 / (readout_len * 1e-9)
     
-    #np.savez(full_path, frequencies=frequencies, counts=counts, counts_dark=counts_dark, counts2=counts2, time=time, mw_amp=mw_amp)
+    
+    #np.savez(full_path, frequencies=(NV_LO_freq * 1 + f_vec) / u.MHz, counts=counts, counts_dark=counts_dark, counts2=counts2, time=time, mw_amp=mw_amp, theta=theta, phi=phi, fitparams=p)

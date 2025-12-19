@@ -33,7 +33,7 @@ from datetime import datetime
 # The QUA program #
 ###################
 
-t_vec = np.arange(4, 600, 1)  # Pulse durations in clock cycles (4ns)
+t_vec = np.arange(4, 200, 1)  # Pulse durations in clock cycles (4ns)
 n_avg = 1_000_000  # Number of averaging loops
 
 # Data to save
@@ -56,14 +56,14 @@ with program() as time_rabi:
     wait(wait_for_initialization * u.ns, "AOM1")
     
     #update_frequency("NV", 0*u.MHz)
-    update_frequency("NV", 70.5*u.MHz)
+    update_frequency("NV", 70*u.MHz)
 
 
     # Time Rabi sweep
     with for_(n, 0, n < n_avg, n + 1):
         with for_(*from_array(t, t_vec)):
             # Play the Rabi pulse with varying durations
-            play("x180" * amp(0.1), "NV", duration=t)
+            play("x180" * amp(2.5), "NV", duration=t)
             align()  # Play the laser pulse after the mw pulse
             play("laser_ON", "AOM1")
             # Measure and detect the photons on SPCM1
@@ -124,7 +124,7 @@ else:
         progress_counter(iteration, n_avg, start_time=results.get_start_time())
         # Plot data
         plt.cla()
-        plt.plot(t_vec * 4, counts / 1000 / (meas_len_1 / u.s), label="photon counts")
+        plt.plot(t_vec * 4, (counts) / 1000 / (meas_len_1 / u.s), label="photon counts")
         plt.plot(t_vec * 4, counts_dark / 1000 / (meas_len_1 / u.s), label="dark counts")
         #plt.plot(t_vec * 4, (counts / counts_dark), label="Normalized Rabi")
 
